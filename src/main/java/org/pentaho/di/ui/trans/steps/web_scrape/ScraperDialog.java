@@ -1,7 +1,6 @@
 package org.pentaho.di.ui.trans.steps.web_scrape;
 
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.custom.CTabFolder;
 import org.eclipse.swt.custom.CTabItem;
 import org.eclipse.swt.events.ModifyEvent;
@@ -12,24 +11,22 @@ import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.*;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.Props;
-import org.pentaho.di.core.exception.KettleStepException;
-import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDialogInterface;
 import org.pentaho.di.trans.steps.web_scrape.ScraperMeta;
-import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 
 public class ScraperDialog extends BaseStepDialog implements StepDialogInterface {
     private final ScraperMeta scraperMeta;
     private final String initialStepName;
-    private final String initialUrlFieldName;
+    private final String initialSourceUrl;
     private final String initialOutputFieldName;
 
     // widgets
-    private CCombo urlFieldCombo;
+//    private CCombo urlFieldCombo;
+    private TextVar sourceUrlTextfield;
     private TextVar outputFieldInput;
 
     // Handlers
@@ -49,7 +46,7 @@ public class ScraperDialog extends BaseStepDialog implements StepDialogInterface
         super(parent, baseStepMeta, transMeta, stepname);
         this.scraperMeta = (ScraperMeta) baseStepMeta;
         this.initialStepName = stepname;
-        this.initialUrlFieldName = this.scraperMeta.getUrlFieldName();
+        this.initialSourceUrl = this.scraperMeta.getSourceUrl();
         this.initialOutputFieldName = this.scraperMeta.getOutputFieldName();
     }
 
@@ -138,15 +135,14 @@ public class ScraperDialog extends BaseStepDialog implements StepDialogInterface
         urlFieldLabelFormData.right = new FormAttachment(middle, -margin);
         urlFieldLabel.setLayoutData(urlFieldLabelFormData);
 
-        urlFieldCombo = new CCombo(urlAndRes, SWT.BORDER | SWT.READ_ONLY);
-        urlFieldCombo.setEditable(true);
-        props.setLook(urlFieldCombo);
-        urlFieldCombo.addModifyListener( new ValueChangeModifyListener() );
-        FormData urlFieldComboFormData = new FormData();
-        urlFieldComboFormData.left = new FormAttachment(middle, margin);
-        urlFieldComboFormData.top = new FormAttachment(wStepname, margin);
-        urlFieldComboFormData.right = new FormAttachment(100, -margin);
-        urlFieldCombo.setLayoutData(urlFieldComboFormData);
+        sourceUrlTextfield = new TextVar( transMeta, urlAndRes, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+        props.setLook( sourceUrlTextfield );
+        sourceUrlTextfield.addModifyListener(new ValueChangeModifyListener() );
+        FormData sourceUrlTextfieldFormData = new FormData();
+        sourceUrlTextfieldFormData.left = new FormAttachment( middle, margin );
+        sourceUrlTextfieldFormData.right = new FormAttachment( 100, -margin );
+        sourceUrlTextfieldFormData.top = new FormAttachment( wStepname, margin );
+        sourceUrlTextfield.setLayoutData( sourceUrlTextfieldFormData );
 
         /*
          * output field
@@ -156,7 +152,7 @@ public class ScraperDialog extends BaseStepDialog implements StepDialogInterface
         props.setLook( outputFieldInputLabel );
         FormData outputFieldInputLabelFormData = new FormData();
         outputFieldInputLabelFormData.left = new FormAttachment( 0, 0 );
-        outputFieldInputLabelFormData.top = new FormAttachment( urlFieldCombo, margin );
+        outputFieldInputLabelFormData.top = new FormAttachment( sourceUrlTextfield, margin );
         outputFieldInputLabelFormData.right = new FormAttachment( middle, -margin );
         outputFieldInputLabel.setLayoutData( outputFieldInputLabelFormData );
 
@@ -166,7 +162,7 @@ public class ScraperDialog extends BaseStepDialog implements StepDialogInterface
         FormData outputFieldInputFormData = new FormData();
         outputFieldInputFormData.left = new FormAttachment( middle, margin );
         outputFieldInputFormData.right = new FormAttachment( 100, -margin );
-        outputFieldInputFormData.top = new FormAttachment( urlFieldCombo, margin );
+        outputFieldInputFormData.top = new FormAttachment( sourceUrlTextfield, margin );
         outputFieldInput.setLayoutData( outputFieldInputFormData );
 
         // ///////////////////////////////////////////////////////////
@@ -229,7 +225,6 @@ public class ScraperDialog extends BaseStepDialog implements StepDialogInterface
         setSize();
 
         getData();
-        loadUrlFieldNameCombo();
         scraperMeta.setChanged(backupChanged);
 
         shell.open();
@@ -241,21 +236,9 @@ public class ScraperDialog extends BaseStepDialog implements StepDialogInterface
         return stepname;
     }
 
-    private void loadUrlFieldNameCombo() {
-        try {
-            RowMetaInterface prevInfoFields = transMeta.getPrevStepFields(stepname);
-            if (prevInfoFields.getFieldNames() != null) {
-                urlFieldCombo.setItems(prevInfoFields.getFieldNames() );
-            }
-        } catch (KettleStepException e) {
-            new ErrorDialog( shell, "Failed to get fields from previous step",
-                    "Failed to get fields from previous step", e);
-        }
-    }
-
     private void getData() {
-        if (scraperMeta.getUrlFieldName() != null) {
-            urlFieldCombo.setText(scraperMeta.getUrlFieldName());
+        if (scraperMeta.getSourceUrl() != null) {
+            sourceUrlTextfield.setText(scraperMeta.getSourceUrl() );
         }
         if (scraperMeta.getOutputFieldName() != null) {
             outputFieldInput.setText(scraperMeta.getOutputFieldName() );
@@ -272,13 +255,15 @@ public class ScraperDialog extends BaseStepDialog implements StepDialogInterface
 
     private void ok() {
         stepname = wStepname.getText();
-        scraperMeta.setUrlFieldName(urlFieldCombo.getText() );
+        scraperMeta.setSourceUrl(sourceUrlTextfield.getText() );
         scraperMeta.setOutputFieldName(outputFieldInput.getText() );
         dispose();
     }
 
+
+    // below 3 methods might come in handy for fancy changed/unchanged handling.
     private boolean urlFieldChanged() {
-        return !urlFieldCombo.getText().equals(initialUrlFieldName);
+        return !sourceUrlTextfield.getText().equals(initialSourceUrl);
     }
 
     private boolean outputFieldNameChanged() {

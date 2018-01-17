@@ -57,7 +57,7 @@ public class ScraperWorkerImpl implements ScraperWorker {
 
     private String getAll(List<String> projectUrls) {
         JsonArray projectsJson = new JsonArray();
-        for (int i = 0; i < projectUrls.size(); i++) {
+        for (int i = 0; i < projectUrls.size() && i < 10 /*this is to reduce redeploy iteration*/ ; i++) {
             JsonObject projectjson = new JsonObject();
             Document doc = null;
             try {

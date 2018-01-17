@@ -31,10 +31,9 @@ import static org.pentaho.di.core.row.ValueMetaInterface.TYPE_STRING;
         image = "org/pentaho/di/trans/steps/web_scrape/resources/kafka_consumer.png"
 )
 public class ScraperMeta extends BaseStepMeta implements StepMetaInterface {
-    public static final String DEFAULT_URL_FIELD_NAME = "url";
     public static final String DEFAULT_OUTPUT_FIELD_NAME = "scrapeResult";
 
-    private String urlFieldName;
+    private String sourceUrl;
     private String outputFieldName;
     private ValueMetaInterface outputFieldMetaInterface;
 
@@ -48,7 +47,7 @@ public class ScraperMeta extends BaseStepMeta implements StepMetaInterface {
 
     @Override
     public void setDefault() {
-        urlFieldName = DEFAULT_URL_FIELD_NAME;
+        sourceUrl = null;
         outputFieldName = DEFAULT_OUTPUT_FIELD_NAME;
     }
 
@@ -57,7 +56,7 @@ public class ScraperMeta extends BaseStepMeta implements StepMetaInterface {
         // For the user it does not really make sense to duplicate this step...
         ScraperMeta newScraperMeta = (ScraperMeta) super.clone();
         // Strings are immutable, it's safe to set same
-        newScraperMeta.setUrlFieldName(this.urlFieldName);
+        newScraperMeta.setSourceUrl(this.sourceUrl);
         newScraperMeta.setOutputFieldName(this.outputFieldName);
         return newScraperMeta;
     }
@@ -65,9 +64,9 @@ public class ScraperMeta extends BaseStepMeta implements StepMetaInterface {
     @Override
     public String getXML() throws KettleException {
         StringBuilder retval = new StringBuilder(300);
-        retval  .append("    <urlFieldName>")
-                .append(urlFieldName)
-                .append("</urlFieldName>")
+        retval  .append("    <sourceUrl>")
+                .append(sourceUrl)
+                .append("</sourceUrl>")
                 .append(Const.CR);
         retval  .append("    <outputFieldName>")
                 .append(outputFieldName)
@@ -79,7 +78,7 @@ public class ScraperMeta extends BaseStepMeta implements StepMetaInterface {
     @Override
     public void loadXML(Node stepnode, List<DatabaseMeta> databases, IMetaStore metaStore) throws KettleXMLException {
         super.loadXML(stepnode, databases, metaStore);
-        this.urlFieldName = XMLHandler.getTagValue(stepnode, "urlFieldName");
+        this.sourceUrl = XMLHandler.getTagValue(stepnode, "urlFieldName");
         this.outputFieldName = XMLHandler.getTagValue(stepnode, "outputFieldName");
     }
 
@@ -112,17 +111,9 @@ public class ScraperMeta extends BaseStepMeta implements StepMetaInterface {
         }
 
     }
+
     // *****************************************************************************************************************
-
     // getters and setters below
-
-    public String getUrlFieldName() {
-        return urlFieldName;
-    }
-
-    public void setUrlFieldName(String urlFieldName) {
-        this.urlFieldName = urlFieldName;
-    }
 
     public String getOutputFieldName() {
         return outputFieldName;
@@ -130,5 +121,13 @@ public class ScraperMeta extends BaseStepMeta implements StepMetaInterface {
 
     public void setOutputFieldName(String outputFieldName) {
         this.outputFieldName = outputFieldName;
+    }
+
+    public String getSourceUrl() {
+        return sourceUrl;
+    }
+
+    public void setSourceUrl(String sourceUrl) {
+        this.sourceUrl = sourceUrl;
     }
 }
