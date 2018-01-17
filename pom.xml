@@ -26,6 +26,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <kettle.version>7.0.0.0-25</kettle.version>
         <jsoup.version>1.8.3</jsoup.version>
+        <minimal-json.version>0.9.5</minimal-json.version>
     </properties>
 
     <repositories>
@@ -66,6 +67,12 @@
             <artifactId>jsoup</artifactId>
             <version>${jsoup.version}</version>
             <scope>compile</scope>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/com.eclipsesource.minimal-json/minimal-json -->
+        <dependency>
+            <groupId>com.eclipsesource.minimal-json</groupId>
+            <artifactId>minimal-json</artifactId>
+            <version>${minimal-json.version}</version>
         </dependency>
 
     </dependencies>
