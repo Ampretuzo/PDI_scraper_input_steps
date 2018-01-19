@@ -12,82 +12,120 @@ import org.jsoup.select.Elements;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 public class ScraperWorkerImpl implements ScraperWorker {
+
+    private static final String PRO_NAME = "pro_name";
+    private static final String TIMELINE = "timeline";
+    private static final String FROM = "from";
+    private static final String LIST = "list";
+    private static final String LAST_UPDATE = "last_update";
+    private static final String PRICE = "price";
+    private static final String ORI = "ori";
+    private static final String PROJECT = "project";
+    private static final String STATUS = "status";
+    private static final String REQUIREMENT_TYPE = "requirement_type";
+    private static final String ORIGIN = "origin";
+    private static final String LOCATION = "location";
+    private static final String LOCATION2 = "location";
+    private static final String INDUSTRY = "industry";
+    private static final String ORI_INDUSTRY = "ori_industry";
+    private static final String PROJECT_TYPE = "project_type";
+    private static final String LANGUAGE = "language";
+    private static final String DESCRIP = "descrip";
+    private static final String PUBLISHER = "publisher";
+    private static final String PUBLISHER_TYPE = "type";
+    private static final String PUBLISHER_NAME = "name";
+    private static final String PUBLISHER_ROLE = "role";
+    private static final String PUBLISHER_DESCRIP = "descrip";
+    private static final String SOURCE_URL = "source_url";
+    private static final String PAGE_URL = "page_url";
+
     @Override
-    public String scrapeUrl(final String url, final Scraper.LoggerForScraper logger) {
-        String projectsJsonFromApi = null;
-        try {
-            URLConnection connection = new URL(url).openConnection();
-            connection
-                    .setRequestProperty("User-Agent",
-                            "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.95 Safari/537.11");
-            connection.connect();
-
-            BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream(), Charset.forName("UTF-8")));
-
-            StringBuilder sb = new StringBuilder();
-            String line;
-            while ((line = br.readLine()) != null) {
-                sb.append(line);
-            }
-            projectsJsonFromApi = sb.toString();
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        if (projectsJsonFromApi == null) return null;   // safety first TODO: log what happened
+    public String scrapeUrl(final String url, final Scraper.LoggerForScraper logger) throws IOException {
+        String projectsJsonFromApi = getJsonFromApi(url, logger);
 
         JsonObject apiResponse = Json.parse(projectsJsonFromApi).asObject();
-//        List<String> projectUrls = new ArrayList<String>();
         JsonArray targetJson = new JsonArray();
         Iterator<JsonValue> projectsIterator = apiResponse.get("projects").asArray().iterator();
         int counter = 0;
-        while (projectsIterator.hasNext() && counter < 5 ) {
+        while (projectsIterator.hasNext() && counter < 10 ) {
             counter ++;
             JsonObject next = (JsonObject) projectsIterator.next();
-//            projectUrls.add("https://ec.europa.eu/eipp/desktop/en/projects/project-" + next.get("id") + ".html");
+            // put in only necessary values
             String submitDateStr = next.getString("submitDateStr", "");
             String updateDateStr = next.getString("updateDateStr", "");
             String projectUrl = "https://ec.europa.eu/eipp/desktop/en/projects/project-" + next.get("id") + ".html";
-            JsonObject targetJsonProject = createProjectJson(projectUrl, submitDateStr, updateDateStr);
+            Map<String, Object> allData = getAllData(submitDateStr, updateDateStr, projectUrl, logger);
+            JsonObject targetJsonProject = buildTargetJsonProject(allData);
             if (targetJsonProject == null) continue;
             targetJson.add(targetJsonProject);
         }
-//        return getAll(projectUrls);
         return targetJson.toString();
     }
 
-    private JsonObject createProjectJson(String projectUrl, String submitDateStr, String updateDateStr) {
-        JsonObject timeline = new JsonObject()
-                .add("list", submitDateStr)
-                .add("last_update", updateDateStr);
-        JsonObject sourceUrl = new JsonObject()
-                .add("page_url", projectUrl);
-        JsonObject targetJsonProject = new JsonObject()
-                .add("timeline", timeline)
-                .add("source_url", sourceUrl)
-                .add("price", new JsonObject().add("ori", new JsonArray() ) )
-                .add("project", new JsonObject().add("language", new JsonArray() ) )
-                .add("location", new JsonObject().add("origin", new JsonObject().add("location", new JsonArray() ) ) )
-                .add("industry", new JsonObject().add("ori_industry", new JsonArray() ) )
-                .add("descrip", new JsonArray() )
-                .add("publisher", new JsonObject().add("role", new JsonArray() ) );
-        // this is dirty
-        scrapeSpecificProject(targetJsonProject, projectUrl);
-        return targetJsonProject;
+    private JsonObject buildTargetJsonProject(Map<String, Object> allData) {
+        // NOTE: map structure does not necessarily match object structure
+        if (allData == null) return null;
+
+        String projType = (String) ( (Map<String, Object>) allData.get(PROJECT) ).get(PROJECT_TYPE);
+        String projStatus = (String) ( (Map<String, Object>) allData.get(PROJECT) ).get(STATUS);
+        JsonObject project = new JsonObject()
+                .add(PROJECT_TYPE, projType)
+                .add(STATUS, projStatus)
+                .add(LANGUAGE, new JsonArray().add("en") );
+
+        JsonObject location = new JsonObject()
+                .add(ORIGIN, new JsonObject()
+                        .add(LOCATION2, createJsonArrayFromList( (List<String>) allData.get(LOCATION) ) )
+                );
+
+        JsonObject industry = new JsonObject()
+                .add(ORI_INDUSTRY, createJsonArrayFromList((List<String>) allData.get(ORI_INDUSTRY) ) );
+
+        JsonArray descrip = createJsonArrayFromList( (List<String>) allData.get(DESCRIP));
+
+        Map<String, Object> publisherData = (Map<String, Object>) allData.get(PUBLISHER);
+        JsonObject publisher = new JsonObject()
+                .add(PUBLISHER_TYPE, "Project promoter")
+                .add(PUBLISHER_NAME, (String) publisherData.get(PUBLISHER_NAME))
+                .add(PUBLISHER_DESCRIP, (String) publisherData.get(PUBLISHER_DESCRIP))
+                .add(PUBLISHER_ROLE, createJsonArrayFromList((List<String>) publisherData.get(PUBLISHER_ROLE)) );
+
+        JsonObject targetProject = new JsonObject()
+                .add(TIMELINE, new JsonObject()
+                        .add(LIST, (String) allData.get(LIST) )
+                        .add(LAST_UPDATE, (String) allData.get(LAST_UPDATE) )
+                )
+                .add(SOURCE_URL, new JsonObject()
+                        .add(PAGE_URL, (String) allData.get(PAGE_URL) )
+                ).add(PRICE, new JsonObject().add(ORI, createJsonArrayFromList( (List<String>) allData.get(ORI) ) ) )
+                .add(PROJECT, project)
+                .add(LOCATION, location)
+                .add(INDUSTRY, industry)
+                .add(REQUIREMENT_TYPE, (String) allData.get(REQUIREMENT_TYPE) )
+                .add(DESCRIP, descrip)
+                .add(PUBLISHER, publisher)
+                ;
+
+        return targetProject;
     }
 
-    private void scrapeSpecificProject(JsonObject targetJsonProject, String projectUrl) {
+    private JsonArray createJsonArrayFromList(List<String> strings) {
+        if (strings == null) return null;
+        JsonArray res = new JsonArray();
+        for (int i = 0; i < strings.size(); i++) {
+            String s = strings.get(i);
+            res.add(s);
+        }
+        return res;
+    }
+
+    private Map<String, Object> getAllData(String submitDateStr, String updateDateStr, String projectUrl, Scraper.LoggerForScraper logger) {
         Document doc = null;
         try {
             doc = Jsoup.connect(projectUrl)
@@ -95,69 +133,109 @@ public class ScraperWorkerImpl implements ScraperWorker {
                     .timeout(3000)
                     .get();
         } catch (IOException e) {
-            // TODO: adapter is needed for log
-//                logBasic("Could not connect to " + projectUrls.get(i) );
-            return;
+            logger.logBasic("Could not retrieve data from " + projectUrl);
+            return null;
         }
 
-        targetJsonProject.add("pro_name", doc.body().getElementsByTag("h1").get(0).text() );
+        Map<String, Object> result = new HashMap<>();
 
+        // pro_name
+        result.put(PRO_NAME, doc.body().getElementsByTag("h1").get(0).text() );
+
+        // source_url:page_url
+        result.put(PAGE_URL, projectUrl);
+
+        // timeline:from
         String from = getFrom(doc);
-        ( (JsonObject) targetJsonProject.get("timeline") ).add("from", from);
+        if (from != null) result.put(FROM, from);
 
+        // timeline:list
+        if (submitDateStr != null) result.put(LIST, submitDateStr);
+
+        // timeline:last_update
+        if (updateDateStr != null) result.put(LAST_UPDATE, updateDateStr);
+
+        // price:ori
+        List<String> ori = new ArrayList<>();
+        result.put(ORI, ori);
         String ori1 = getOri(doc);
-        JsonObject price = (JsonObject) targetJsonProject.get("price");
-        ( (JsonArray) price.get("ori") ).add(ori1);
+        if (ori1 != null) ori.add(ori1);
 
+        // project
+        HashMap<String, Object> project = new HashMap<>();
+        result.put(PROJECT, project);
+
+        // project:status
         String status = getStatus(doc);
-        ( (JsonObject) targetJsonProject.get("project") ).add("status", status);
+        if (status != null) project.put(STATUS, status);
 
+        // requirement_type
+        String requirementType = null;
+        if ("planning".equals(status) ||
+                "(pre)feasibility".equals(status) ||
+                "structuring".equals(status) ||
+                "procurement".equals(status) ) {
+            requirementType = "attraction";
+        } else {
+            requirementType = "financing";
+        }
+        result.put(REQUIREMENT_TYPE, requirementType);
+
+        // location:origin:location
         List<String> originLocations = getOriginLocations(doc);
-        for (int i = 0; i < originLocations.size(); i++) {
-            ( (JsonArray) ( (JsonObject) ( (JsonObject) targetJsonProject.get("location") ).get("origin") ).get("location") ).add(originLocations.get(i) );
-        }
+        result.put(LOCATION, originLocations);
 
-        List<String> oriIndustries = getOriIndustries(doc);
-        for (int i = 0; i < oriIndustries.size(); i++) {
-            ( (JsonArray) ( (JsonObject) targetJsonProject.get("industry") ).get("ori_industry") ).add(oriIndustries.get(i) );
-        }
+        // industry:ori_industry
+        List<String> oriIndustry = getOriIndustries(doc);
+        result.put(ORI_INDUSTRY, oriIndustry);
 
-        if (status != null) {
-            targetJsonProject.add(
-                    "requirement_type",
-                    (status.equals("planning") ||
-                            status.equals("(pre)feasibility") ||
-                            status.equals("structuring") ||
-                            status.equals("procurement")) ? "attraction" : "financing"
-            );
-        }
-
+        // project:type
         String type = getType(doc);
-        ( (JsonObject) targetJsonProject.get("project") ).add("type", type);
+        project.put(PROJECT_TYPE, type);
 
-        ( (JsonArray) ( (JsonObject) targetJsonProject.get("project") ).get("language") ).add("en");    // hard coded
-
+        // descrip
         List<String> descrip = getDescrip(doc);
-        for (int i = 0; i < descrip.size(); i++) {
-            ( (JsonArray) targetJsonProject.get("descrip") ).add(descrip.get(i) );
-        }
+        result.put(DESCRIP, descrip);
 
-        String publisherType = "Project promoter";
-        ( (JsonObject) targetJsonProject.get("publisher") ).add("type", publisherType);
+        // publisher
+        HashMap<String, Object> publisher = new HashMap<>();
+        result.put(PUBLISHER, publisher);
 
         Element projetPromoterContact = doc.body().getElementById("project-promoter-contact");
         if (projetPromoterContact != null) {
-            // unsafe for the moment
+            // unsafe! might nullpointer at some point
+
             String publisherName = projetPromoterContact.child(1).text();
-            ( (JsonObject) targetJsonProject.get("publisher") ).add("name", publisherName);
+            publisher.put(PUBLISHER_NAME, publisherName);
 
             String publisherSingleRole = projetPromoterContact.child(2).text();
-            ((JsonArray) ((JsonObject) targetJsonProject.get("publisher") ).get("role") ).add(publisherSingleRole);
+            List<String> publisherRole = new ArrayList<>();
+            publisher.put(PUBLISHER_ROLE, publisherRole);
+            publisherRole.add(publisherSingleRole);
 
             String publisherDescription = projetPromoterContact.child(3).text();
-            ( (JsonObject) targetJsonProject.get("publisher") ).add("descrip", publisherDescription);
+            publisher.put(PUBLISHER_DESCRIP, publisherDescription);
         }
 
+        return result;
+    }
+
+    private String getJsonFromApi(String url, Scraper.LoggerForScraper logger) throws IOException {
+        URLConnection connection = new URL(url).openConnection();
+        connection
+                .setRequestProperty("User-Agent",
+                        "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.95 Safari/537.11");
+        connection.connect();
+        logger.logBasic("Connected to " + url);
+
+        BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream(), Charset.forName("UTF-8")));
+
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = br.readLine()) != null) {
+            sb.append(line);
+        }
+        return sb.toString();
     }
 
     private List<String> getDescrip(Document doc) {
@@ -239,12 +317,7 @@ public class ScraperWorkerImpl implements ScraperWorker {
     }
 
     private String getShortFactsField(Element shortFacts, int coord1, int coord2) {
-        if (shortFacts == null) return null;
-        try {   // its nice to have some safety around here, otherwise the thread would be killed with runtime exception
-            return shortFacts.child(coord1).child(coord2).child(2).text();
-        } catch (IndexOutOfBoundsException ioobe) {
-            return null;
-        }
+        return getShortFactsField(shortFacts, coord1, coord2, 2);
     }
 
     private List<String> getOriIndustries(Document doc) {
@@ -279,52 +352,16 @@ public class ScraperWorkerImpl implements ScraperWorker {
 
     private String getStatus(Document doc) {
         Element shortFacts = doc.body().getElementById("short-facts");
-        if (shortFacts == null) return null;
-        try {   // its nice to have some safety around here, otherwise the thread would be killed with runtime exception
-            return shortFacts.child(2).child(0).child(2).text();
-        } catch (IndexOutOfBoundsException ioobe) {
-            return null;
-        }
+        return getShortFactsField(shortFacts, 2, 0);
     }
 
     private String getOri(Document doc) {
         Element shortFacts = doc.body().getElementById("short-facts");
-        if (shortFacts == null) return null;
-        try {   // its nice to have some safety around here, otherwise the thread would be killed with runtime exception
-            return shortFacts.child(0).child(2).child(2).text();
-        } catch (IndexOutOfBoundsException ioobe) {
-            return null;
-        }
+        return getShortFactsField(shortFacts, 0, 2);
     }
 
     private String getFrom(Document doc) {
         Element shortFacts = doc.body().getElementById("short-facts");
-        if (shortFacts == null) return null;
-        try {   // its nice to have some safety around here, otherwise the thread would be killed with runtime exception
-            return shortFacts.child(0).child(1).child(2).text();
-        } catch (IndexOutOfBoundsException ioobe) {
-            return null;
-        }
+        return getShortFactsField(shortFacts, 0, 1);
     }
-
-    /*private String getAll(List<String> projectUrls) {
-        JsonArray projectsJson = new JsonArray();
-        for (int i = 0; i < projectUrls.size() && i < 10 *//*this is to reduce redeploy iteration*//* ; i++) {
-            JsonObject projectjson = new JsonObject();
-            Document doc = null;
-            try {
-                doc = Jsoup.connect(projectUrls.get(i))
-                        .userAgent("Mozilla")
-                        .timeout(3000)
-                        .get();
-            } catch (IOException e) {
-//                logBasic("Could not connect to " + projectUrls.get(i) );
-            }
-            if (doc == null) continue;
-            projectjson.add("pro_name", doc.body().getElementsByTag("h1").get(0).text() );
-
-            projectsJson.add(projectjson);
-        }
-        return projectsJson.toString();
-    }*/
 }

@@ -73,7 +73,7 @@ public class ScraperMeta extends BaseStepMeta implements StepMetaInterface {
     @Override
     public void loadXML(Node stepnode, List<DatabaseMeta> databases, IMetaStore metaStore) throws KettleXMLException {
         super.loadXML(stepnode, databases, metaStore);
-        this.sourceUrl = XMLHandler.getTagValue(stepnode, "urlFieldName");
+        this.sourceUrl = XMLHandler.getTagValue(stepnode, "sourceUrl");
         this.outputFieldName = XMLHandler.getTagValue(stepnode, "outputFieldName");
     }
 

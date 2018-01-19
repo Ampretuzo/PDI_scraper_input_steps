@@ -25,7 +25,6 @@ public class ScraperDialog extends BaseStepDialog implements StepDialogInterface
     private final String initialOutputFieldName;
 
     // widgets
-//    private CCombo urlFieldCombo;
     private TextVar sourceUrlTextfield;
     private TextVar outputFieldInput;
 
@@ -238,7 +237,7 @@ public class ScraperDialog extends BaseStepDialog implements StepDialogInterface
 
     private void getData() {
         if (scraperMeta.getSourceUrl() != null) {
-            sourceUrlTextfield.setText(/*scraperMeta.getSourceUrl()*/ "!hard coded at the moment!");
+            sourceUrlTextfield.setText(scraperMeta.getSourceUrl() );
         }
         if (scraperMeta.getOutputFieldName() != null) {
             outputFieldInput.setText(scraperMeta.getOutputFieldName() );

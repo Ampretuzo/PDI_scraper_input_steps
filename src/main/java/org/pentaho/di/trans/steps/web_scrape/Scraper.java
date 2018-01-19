@@ -8,6 +8,8 @@ import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.*;
 
+import java.io.IOException;
+
 public class Scraper extends BaseStep implements StepInterface {
     /**
      * Used to enable {@link ScraperWorker} to log when it needs to.
@@ -76,7 +78,14 @@ public class Scraper extends BaseStep implements StepInterface {
         String url = scraperMeta.getSourceUrl();
 
         r = RowDataUtil.resizeArray(r, scraperData.getOutputRowInterface().size() );    // size could be hard coded as 1
-        r[scraperData.getOutputRowInterface().size() - 1] = scraperWorker.scrapeUrl(url, loggerForScraper); // index could be hard coded as 0
+        try {
+            r[scraperData.getOutputRowInterface().size() - 1] = scraperWorker.scrapeUrl(url, loggerForScraper); // index could be hard coded as 0
+        } catch (IOException e) {
+            logError("There was a problem during data retrieval from " + url);
+            e.printStackTrace();
+            setOutputDone();
+            return false;
+        }
         putRow(scraperData.getOutputRowInterface(), r);
 
         incrementLinesInput();
