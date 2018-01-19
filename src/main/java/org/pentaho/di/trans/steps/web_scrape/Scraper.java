@@ -71,7 +71,9 @@ public class Scraper extends BaseStep implements StepInterface {
         r[scraperData.getOutputRowInterface().size() - 1] = scraperWorker.scrapeUrl(url); // getAll(projectUrls);
         putRow(scraperData.getOutputRowInterface(), r);
 
-        return true;
+        setOutputDone();
+
+        return false;
     }
 
 }

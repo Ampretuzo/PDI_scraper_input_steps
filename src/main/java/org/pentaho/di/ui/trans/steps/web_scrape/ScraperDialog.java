@@ -238,7 +238,7 @@ public class ScraperDialog extends BaseStepDialog implements StepDialogInterface
 
     private void getData() {
         if (scraperMeta.getSourceUrl() != null) {
-            sourceUrlTextfield.setText(scraperMeta.getSourceUrl() );
+            sourceUrlTextfield.setText(/*scraperMeta.getSourceUrl()*/ "!hard coded at the moment!");
         }
         if (scraperMeta.getOutputFieldName() != null) {
             outputFieldInput.setText(scraperMeta.getOutputFieldName() );
