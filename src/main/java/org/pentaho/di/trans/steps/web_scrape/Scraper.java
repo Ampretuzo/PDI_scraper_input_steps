@@ -1,13 +1,12 @@
 package org.pentaho.di.trans.steps.web_scrape;
 
 import org.pentaho.di.core.exception.KettleException;
+import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.row.RowDataUtil;
 import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.*;
-
-import java.lang.reflect.Constructor;
 
 public class Scraper extends BaseStep implements StepInterface {
     /**
@@ -38,24 +37,27 @@ public class Scraper extends BaseStep implements StepInterface {
         ScraperMeta meta = (ScraperMeta) smi;
         ScraperData data = (ScraperData) sdi;
 
+        String scraperPluginClassName = "org.pentaho.di.trans.steps.web_scrape.ScraperWorkerImpl";
         // initialize scraperworker
         try {
-            Class<? extends ScraperWorker> clazz = (Class<? extends ScraperWorker>) Class.forName("org.pentaho.di.trans.steps.web_scrape.ScraperWorkerImpl");
-            Constructor<? extends ScraperWorker> ctor = clazz.getConstructor();
-            scraperWorker = ctor.newInstance(new Object[] {});
+            // TODO: hard coded at the moment
+            Class<? extends ScraperWorker> clazz = (Class<? extends ScraperWorker>) Class.forName(scraperPluginClassName);
+            // Use the no-arg ctor
+            scraperWorker = clazz.getConstructor().newInstance();
         } catch (ReflectiveOperationException e) {
+            logError("Could not instantiate " + scraperPluginClassName + " instance, make sure there is such class in classpath and it has a no-arg ctor!");
             e.printStackTrace();
             return false;
         }
-        /*RowMetaInterface inputRowMeta = getInputRowMeta();
+
+        data.setOutputRowInterface(new RowMeta() );  // build on empty row meta
         try {
-            // inputRowMeta is not initialized
-            meta.getFields( inputRowMeta, getStepname(), null, null, this, getRepository(), getMetaStore() );
+            meta.getFields( data.getOutputRowInterface(), getStepname(), null, null, this, getRepository(), getMetaStore() );
         } catch (KettleStepException e) {
+            logError("Failed to initialize output row structure...");
             e.printStackTrace();
             return false;
         }
-        data.setOutputRowInterface(inputRowMeta);*/
         return true;
     }
 
@@ -64,27 +66,20 @@ public class Scraper extends BaseStep implements StepInterface {
         ScraperData scraperData = (ScraperData) sdi;
         ScraperMeta scraperMeta = (ScraperMeta) smi;
 
-        Object[] r = new Object[] {}; // null;
-//        r = getRow();
-
-        if ( r == null ) { // no more rows to be expected from the previous step(s)
-            setOutputDone();
-            return false;
-        }
+        Object[] r = new Object[] {};
 
         if (first) {
             first = false;
-            scraperData.setOutputRowInterface(new RowMeta() );
-            scraperData.getOutputRowInterface().addValueMeta(scraperMeta.getOutputFieldMetaInterface() );
         }
 
 //        String url = "https://ec.europa.eu/eipp/desktop/en/list-view.html";
         String url = scraperMeta.getSourceUrl();
 
-        r = RowDataUtil.resizeArray(r, scraperData.getOutputRowInterface().size() );
-        r[scraperData.getOutputRowInterface().size() - 1] = scraperWorker.scrapeUrl(url, loggerForScraper);
+        r = RowDataUtil.resizeArray(r, scraperData.getOutputRowInterface().size() );    // size could be hard coded as 1
+        r[scraperData.getOutputRowInterface().size() - 1] = scraperWorker.scrapeUrl(url, loggerForScraper); // index could be hard coded as 0
         putRow(scraperData.getOutputRowInterface(), r);
 
+        incrementLinesInput();
         setOutputDone();
 
         return false;

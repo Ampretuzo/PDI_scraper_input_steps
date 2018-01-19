@@ -35,14 +35,9 @@ public class ScraperMeta extends BaseStepMeta implements StepMetaInterface {
 
     private String sourceUrl;
     private String outputFieldName;
-    private ValueMetaInterface outputFieldMetaInterface;
 
     public ScraperMeta() {
         super();
-    }
-
-    public ValueMetaInterface getOutputFieldMetaInterface() {
-        return outputFieldMetaInterface;
     }
 
     @Override
@@ -104,7 +99,6 @@ public class ScraperMeta extends BaseStepMeta implements StepMetaInterface {
         try {
             ValueMetaInterface outputField = ValueMetaFactory.createValueMeta(TYPE_STRING);
             outputField.setName(outputFieldName);
-            this.outputFieldMetaInterface = outputField;
             inputRowMeta.addValueMeta(outputField);
         } catch (KettlePluginException e) {
             throw new KettleStepException( e );
