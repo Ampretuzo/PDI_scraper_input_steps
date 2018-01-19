@@ -22,7 +22,7 @@ import java.util.List;
 
 public class ScraperWorkerImpl implements ScraperWorker {
     @Override
-    public String scrapeUrl(String url) {
+    public String scrapeUrl(final String url, final Scraper.LoggerForScraper logger) {
         String projectsJsonFromApi = null;
         try {
             String a = "https://ec.europa.eu/eipp/desktop/en/data/projects.json";
