@@ -114,20 +114,25 @@ public class ScraperECWorker implements Runnable {
         HashMap<String, Object> publisher = new HashMap<>();
         result.put(PUBLISHER, publisher);
 
-        Element projetPromoterContact = doc.body().getElementById("project-promoter-contact");
-        if (projetPromoterContact != null) {
-            // unsafe! might nullpointer at some point
+        Element projectPromoterContact = doc.body().getElementById("project-promoter-contact");
+        if (projectPromoterContact != null) {
+            Elements paragraphs = projectPromoterContact.getElementsByTag("p");
 
-            String publisherName = projetPromoterContact.child(1).text();
+            // first paragraph must be promoter name
+            String publisherName = paragraphs.get(0).text();
             publisher.put(PUBLISHER_NAME, publisherName);
 
-            String publisherSingleRole = projetPromoterContact.child(2).text();
+            // second paragraph must be a promoter role
+            String publisherSingleRole = paragraphs.get(1).text();
             List<String> publisherRole = new ArrayList<>();
             publisher.put(PUBLISHER_ROLE, publisherRole);
             publisherRole.add(publisherSingleRole);
 
-            String publisherDescription = projetPromoterContact.child(3).text();
-            publisher.put(PUBLISHER_DESCRIP, publisherDescription);
+            // if 3rd paragraph is present, then it must be publisher description:
+            if (paragraphs.size() > 2) {
+                String publisherDescription = paragraphs.get(2).text();
+                publisher.put(PUBLISHER_DESCRIP, publisherDescription);
+            }
         }
     }
 
@@ -137,30 +142,30 @@ public class ScraperECWorker implements Runnable {
 
         Elements first = doc.body().getElementsByClass("description");
         if (first.size() == 1) {
-            Elements firstChildren = first.get(0).children();
-            String firstDescription = "";
-            Iterator<Element> iterator = firstChildren.iterator();
-            while (iterator.hasNext() ) {
-                firstDescription += descriptions.add(iterator.next().text());
-                firstDescription += separator;
-            }
-            descriptions.add(firstDescription);
+            descriptions.add(first.get(0).text() );
         }
 
         Element shortFacts = doc.body().getElementById("short-facts");
 
-        // TODO: these might be absent from webpage
         String secondDescription = "";
-        secondDescription += getShortFactsField(shortFacts, 2, 1, 1);
-        secondDescription += separator;
-        secondDescription += getShortFactsField(shortFacts, 2, 1, 2);
-        descriptions.add(secondDescription);
+        String revenueType = getShortFactsFieldName(shortFacts, 2, 1);
+        String revenueTypeValue = getShortFactsFieldValue(shortFacts, 2, 1);
+        if (revenueType != null) {
+            secondDescription += revenueType;   // must return 'revenue type'
+            secondDescription += separator;
+            secondDescription += revenueTypeValue;
+            descriptions.add(secondDescription);
+        }
 
         String thirdDescription = "";
-        thirdDescription += getShortFactsField(shortFacts, 2, 2, 1);
-        thirdDescription += separator;
-        thirdDescription += getShortFactsField(shortFacts, 2, 2, 2);
-        descriptions.add(thirdDescription);
+        String jobsCreated = getShortFactsFieldName(shortFacts, 2, 2);
+        String jobsCreatedValue = getShortFactsFieldValue(shortFacts, 2, 2);
+        if (jobsCreated != null) {
+            thirdDescription += jobsCreated;
+            thirdDescription += separator;
+            thirdDescription += jobsCreatedValue;
+            descriptions.add(thirdDescription);
+        }
 
         Element contentFacts = doc.body().getElementById("content-facts");
         if (contentFacts != null) {
@@ -181,11 +186,20 @@ public class ScraperECWorker implements Runnable {
         return descriptions;
     }
 
-    private String getShortFactsField(Element shortFacts, int coord1, int coord2, int coord3) {
+    private String getShortFactsFieldName(Element shortFacts, int coord1, int coord2) {
         if (shortFacts == null) return null;
         try {   // its nice to have some safety around here, otherwise the thread would be killed with runtime exception
-            return shortFacts.child(coord1).child(coord2).child(coord3).text();
-        } catch (IndexOutOfBoundsException ioobe) {
+            return shortFacts.child(coord1).child(coord2).getElementsByTag("h3").get(0).text();
+        } catch (IndexOutOfBoundsException | NullPointerException bad) {
+            return null;
+        }
+    }
+
+    private String getShortFactsFieldValue(Element shortFacts, int coord1, int coord2) {
+        if (shortFacts == null) return null;
+        try {   // its nice to have some safety around here, otherwise the thread would be killed with runtime exception
+            return shortFacts.child(coord1).child(coord2).getElementsByTag("p").get(0).text();
+        } catch (IndexOutOfBoundsException | NullPointerException bad) {
             return null;
         }
     }
@@ -206,11 +220,7 @@ public class ScraperECWorker implements Runnable {
 
     private String getType(Document doc) {
         Element shortFacts = doc.body().getElementById("short-facts");
-        return getShortFactsField(shortFacts, 1, 2);
-    }
-
-    private String getShortFactsField(Element shortFacts, int coord1, int coord2) {
-        return getShortFactsField(shortFacts, coord1, coord2, 2);
+        return getShortFactsFieldValue(shortFacts, 1, 2);
     }
 
     private List<String> getOriIndustries(Document doc) {
@@ -245,16 +255,16 @@ public class ScraperECWorker implements Runnable {
 
     private String getStatus(Document doc) {
         Element shortFacts = doc.body().getElementById("short-facts");
-        return getShortFactsField(shortFacts, 2, 0);
+        return getShortFactsFieldValue(shortFacts, 2, 0);
     }
 
     private String getOri(Document doc) {
         Element shortFacts = doc.body().getElementById("short-facts");
-        return getShortFactsField(shortFacts, 0, 2);
+        return getShortFactsFieldValue(shortFacts, 0, 2);
     }
 
     private String getFrom(Document doc) {
         Element shortFacts = doc.body().getElementById("short-facts");
-        return getShortFactsField(shortFacts, 0, 1);
+        return getShortFactsFieldValue(shortFacts, 0, 1);
     }
 }

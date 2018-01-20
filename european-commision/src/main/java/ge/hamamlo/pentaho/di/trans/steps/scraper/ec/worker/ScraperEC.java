@@ -118,13 +118,14 @@ public class ScraperEC implements Scraper {
         JsonObject publisher = new JsonObject()
                 .add(PUBLISHER_TYPE, "Project promoter")
                 .add(PUBLISHER_NAME, (String) publisherData.get(PUBLISHER_NAME))
-                .add(PUBLISHER_DESCRIP, (String) publisherData.get(PUBLISHER_DESCRIP))
                 .add(PUBLISHER_ROLE, createJsonArrayFromList((List<String>) publisherData.get(PUBLISHER_ROLE)) );
+        if (publisherData.get(PUBLISHER_DESCRIP) != null) publisher.add(PUBLISHER_DESCRIP, (String) publisherData.get(PUBLISHER_DESCRIP) );
 
         JsonObject targetProject = new JsonObject()
                 .add(TIMELINE, new JsonObject()
                         .add(LIST, (String) allData.get(LIST) )
                         .add(LAST_UPDATE, (String) allData.get(LAST_UPDATE) )
+                        .add(FROM, (String) allData.get(FROM) )
                 )
                 .add(SOURCE_URL, new JsonObject()
                         .add(PAGE_URL, (String) allData.get(PAGE_URL) )
