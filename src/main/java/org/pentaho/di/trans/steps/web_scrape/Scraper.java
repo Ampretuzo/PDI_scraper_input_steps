@@ -11,6 +11,7 @@ import org.pentaho.di.trans.step.*;
 import java.io.IOException;
 
 public class Scraper extends BaseStep implements StepInterface {
+    public static final int MAX_CONNS_TO_SINGE_SERVER = 32;   // not to be rude, limit simultaneous connectins to server on this #
     /**
      * Used to enable {@link ScraperWorker} to log when it needs to.
      */
