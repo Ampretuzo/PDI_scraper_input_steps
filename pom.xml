@@ -9,7 +9,7 @@
 
   <modules>
     <module>pdi-scraper-step-base</module>
-    <module>european-commision</module>
+    <module>specific-scrapers</module>
   </modules>
 
   <properties>

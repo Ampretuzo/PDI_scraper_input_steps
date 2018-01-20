@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>european-commision</artifactId>
+    <artifactId>specific-scrapers</artifactId>
 
     <dependencies>
         <dependency>
