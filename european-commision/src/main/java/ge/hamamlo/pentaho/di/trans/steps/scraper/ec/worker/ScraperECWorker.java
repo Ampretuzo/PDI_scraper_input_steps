@@ -1,26 +1,26 @@
-package ge.hamamlo.upwork.pentaho.di.scraper.ec.worker;
+package ge.hamamlo.pentaho.di.trans.steps.scraper.ec.worker;
 
+import ge.hamamlo.pentaho.di.trans.steps.scraper.base.ScraperBase;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.pentaho.di.trans.steps.web_scrape.Scraper;
 
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 
-import static ge.hamamlo.upwork.pentaho.di.scraper.ec.worker.ScraperWorkerImpl.*;
+import static ge.hamamlo.pentaho.di.trans.steps.scraper.ec.worker.ScraperEC.*;
 
-public class ScraperWorkerWorker implements Runnable {
+public class ScraperECWorker implements Runnable {
     private final Semaphore maxConnSemaphore;
     private final CountDownLatch latchUntilAllDone;
-    private final Scraper.LoggerForScraper logger;
+    private final ScraperBase.LoggerForScraper logger;
     private final String projectUrl;
     private final Map<String, Object> dataToPopulate;
 
-    ScraperWorkerWorker(Semaphore maxConnSemaphore, CountDownLatch latchUntilAllDone, Scraper.LoggerForScraper logger, String projectUrl, Map<String, Object> dataToPopulate) {
+    ScraperECWorker(Semaphore maxConnSemaphore, CountDownLatch latchUntilAllDone, ScraperBase.LoggerForScraper logger, String projectUrl, Map<String, Object> dataToPopulate) {
         this.maxConnSemaphore = maxConnSemaphore;
         this.latchUntilAllDone = latchUntilAllDone;
         this.logger = logger;
@@ -44,7 +44,7 @@ public class ScraperWorkerWorker implements Runnable {
         latchUntilAllDone.countDown();
     }
 
-    private void getAllData(Map<String, Object> result, String projectUrl, Scraper.LoggerForScraper logger) {
+    private void getAllData(Map<String, Object> result, String projectUrl, ScraperBase.LoggerForScraper logger) {
         Document doc = null;
         try {
             doc = Jsoup.connect(projectUrl)

@@ -1,7 +1,6 @@
-package org.pentaho.di.trans.steps.web_scrape;
+package ge.hamamlo.pentaho.di.trans.steps.scraper.base;
 
 import org.pentaho.di.core.Const;
-import org.pentaho.di.core.annotations.Step;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettlePluginException;
@@ -16,7 +15,7 @@ import org.pentaho.di.repository.Repository;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.*;
-import org.pentaho.di.ui.trans.steps.web_scrape.ScraperDialog;
+import ge.hamamlo.pentaho.di.ui.trans.steps.scraper.base.ScraperDialog;
 import org.pentaho.metastore.api.IMetaStore;
 import org.w3c.dom.Node;
 
@@ -24,19 +23,19 @@ import java.util.List;
 
 import static org.pentaho.di.core.row.ValueMetaInterface.TYPE_STRING;
 
-public class ScraperMeta extends BaseStepMeta implements StepMetaInterface {
+public class ScraperBaseMeta extends BaseStepMeta implements StepMetaInterface {
     public static final String DEFAULT_OUTPUT_FIELD_NAME = "scrapeResult";
 
     private String sourceUrl;
     private String outputFieldName;
-    private Class<? extends ScraperWorker> scraperWorkerClass;
+    private Class<? extends Scraper> scraperClass;
 
-    public ScraperMeta() {
+    public ScraperBaseMeta() {
         super();
     }
 
     /**
-     * Override this method to set {@code scraperWorkerClass} at the startup.
+     * Override this method to set {@code scraperClass} at the startup.
      */
     @Override
     public void setDefault() {
@@ -47,11 +46,11 @@ public class ScraperMeta extends BaseStepMeta implements StepMetaInterface {
     @Override
     public Object clone() {
         // For the user it does not really make sense to duplicate this step...
-        ScraperMeta newScraperMeta = (ScraperMeta) super.clone();
+        ScraperBaseMeta newScraperBaseMeta = (ScraperBaseMeta) super.clone();
         // Strings are immutable, it's safe to set same
-        newScraperMeta.setSourceUrl(this.sourceUrl);
-        newScraperMeta.setOutputFieldName(this.outputFieldName);
-        return newScraperMeta;
+        newScraperBaseMeta.setSourceUrl(this.sourceUrl);
+        newScraperBaseMeta.setOutputFieldName(this.outputFieldName);
+        return newScraperBaseMeta;
     }
 
     @Override
@@ -82,12 +81,12 @@ public class ScraperMeta extends BaseStepMeta implements StepMetaInterface {
 
     @Override
     public StepInterface getStep(StepMeta stepMeta, StepDataInterface stepDataInterface, int copyNr, TransMeta transMeta, Trans trans) {
-        return new Scraper(stepMeta, stepDataInterface, copyNr, transMeta, trans);
+        return new ScraperBase(stepMeta, stepDataInterface, copyNr, transMeta, trans);
     }
 
     @Override
     public StepDataInterface getStepData() {
-        return new ScraperData();
+        return new ScraperBaseData();
     }
 
     @Override
@@ -123,11 +122,11 @@ public class ScraperMeta extends BaseStepMeta implements StepMetaInterface {
         this.sourceUrl = sourceUrl;
     }
 
-    public Class<? extends ScraperWorker> getScraperWorkerClass() {
-        return scraperWorkerClass;
+    public Class<? extends Scraper> getScraperClass() {
+        return scraperClass;
     }
 
-    public void setScraperWorkerClass(Class<? extends ScraperWorker> scraperWorkerClass) {
-        this.scraperWorkerClass = scraperWorkerClass;
+    public void setScraperClass(Class<? extends Scraper> scraperClass) {
+        this.scraperClass = scraperClass;
     }
 }

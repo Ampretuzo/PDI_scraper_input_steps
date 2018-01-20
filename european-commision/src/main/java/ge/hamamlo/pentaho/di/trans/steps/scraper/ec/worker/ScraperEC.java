@@ -1,10 +1,10 @@
-package ge.hamamlo.upwork.pentaho.di.scraper.ec.worker;
+package ge.hamamlo.pentaho.di.trans.steps.scraper.ec.worker;
 
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
-import org.pentaho.di.trans.steps.web_scrape.Scraper;
-import org.pentaho.di.trans.steps.web_scrape.ScraperWorker;
+import ge.hamamlo.pentaho.di.trans.steps.scraper.base.Scraper;
+import ge.hamamlo.pentaho.di.trans.steps.scraper.base.ScraperBase;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -19,9 +19,9 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 
-import static org.pentaho.di.trans.steps.web_scrape.Scraper.MAX_CONNS_TO_SINGE_SERVER;
+import static ge.hamamlo.pentaho.di.trans.steps.scraper.base.ScraperBase.MAX_CONNS_TO_SINGE_SERVER;
 
-public class ScraperWorkerImpl implements ScraperWorker {
+public class ScraperEC implements Scraper {
 
     public static final String PRO_NAME = "pro_name";
     public static final String TIMELINE = "timeline";
@@ -50,7 +50,7 @@ public class ScraperWorkerImpl implements ScraperWorker {
     public static final String PAGE_URL = "page_url";
 
     @Override
-    public String scrapeUrl(final String url, final Scraper.LoggerForScraper logger) throws IOException {
+    public String scrapeUrl(final String url, final ScraperBase.LoggerForScraper logger) throws IOException {
 
         JsonObject apiResponse = Json.parse(getJsonFromApi(url, logger) ).asObject();
         Semaphore maxConnSemaphore = new Semaphore(MAX_CONNS_TO_SINGE_SERVER);
@@ -73,7 +73,7 @@ public class ScraperWorkerImpl implements ScraperWorker {
             // timeline:last_update
             if (updateDateStr != null) allData.get(i).put(LAST_UPDATE, updateDateStr);
 
-            Thread thread = new Thread(new ScraperWorkerWorker(maxConnSemaphore, latchUntilAllDone, logger, projectUrl, allData.get(i) ) );
+            Thread thread = new Thread(new ScraperECWorker(maxConnSemaphore, latchUntilAllDone, logger, projectUrl, allData.get(i) ) );
             thread.start();
         }
 
@@ -150,7 +150,7 @@ public class ScraperWorkerImpl implements ScraperWorker {
         return res;
     }
 
-    private String getJsonFromApi(String url, Scraper.LoggerForScraper logger) throws IOException {
+    private String getJsonFromApi(String url, ScraperBase.LoggerForScraper logger) throws IOException {
         URLConnection connection = new URL(url).openConnection();
         connection
                 .setRequestProperty("User-Agent",

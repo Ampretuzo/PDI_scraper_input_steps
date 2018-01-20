@@ -1,4 +1,4 @@
-package org.pentaho.di.trans.steps.web_scrape;
+package ge.hamamlo.pentaho.di.trans.steps.scraper.base;
 
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
@@ -10,25 +10,25 @@ import org.pentaho.di.trans.step.*;
 
 import java.io.IOException;
 
-public class Scraper extends BaseStep implements StepInterface {
+public class ScraperBase extends BaseStep implements StepInterface {
     public static final int MAX_CONNS_TO_SINGE_SERVER = 32;   // not to be rude, limit simultaneous connectins to server on this #
     /**
-     * Used to enable {@link ScraperWorker} to log when it needs to.
+     * Used to enable {@link Scraper} to log when it needs to.
      */
     public class LoggerForScraper {
         public void logMinimal(final String toLog) {
-            Scraper.this.logMinimal(toLog);
+            ScraperBase.this.logMinimal(toLog);
         }
 
         public void logBasic(final String toLog) {
-            Scraper.this.logBasic(toLog);
+            ScraperBase.this.logBasic(toLog);
         }
     }
 
-    private ScraperWorker scraperWorker;
+    private Scraper scraper;
     private LoggerForScraper loggerForScraper;
 
-    public Scraper(final StepMeta stepMeta, final StepDataInterface stepDataInterface, int copyNr, final TransMeta transMeta, final Trans trans) {
+    public ScraperBase(final StepMeta stepMeta, final StepDataInterface stepDataInterface, int copyNr, final TransMeta transMeta, final Trans trans) {
         super(stepMeta, stepDataInterface, copyNr, transMeta, trans);
         this.loggerForScraper = new LoggerForScraper();
     }
@@ -37,16 +37,16 @@ public class Scraper extends BaseStep implements StepInterface {
     public boolean init(final StepMetaInterface smi, final StepDataInterface sdi) {
         if (!super.init(smi, sdi) ) return false;
         // set up data interface
-        ScraperMeta meta = (ScraperMeta) smi;
-        ScraperData data = (ScraperData) sdi;
+        ScraperBaseMeta meta = (ScraperBaseMeta) smi;
+        ScraperBaseData data = (ScraperBaseData) sdi;
 
         // initialize scraperworker
         try {
-            Class<? extends ScraperWorker> clazz = meta.getScraperWorkerClass();
+            Class<? extends Scraper> clazz = meta.getScraperClass();
             // Use the no-arg ctor
-            scraperWorker = clazz.getConstructor().newInstance();
+            scraper = clazz.getConstructor().newInstance();
         } catch (ReflectiveOperationException e) {
-            logError("Could not instantiate " + meta.getScraperWorkerClass().getSimpleName() + " instance, make sure there is such class in classpath and it has a no-arg ctor!");
+            logError("Could not instantiate " + meta.getScraperClass().getSimpleName() + " instance, make sure there is such class in classpath and it has a no-arg ctor!");
             e.printStackTrace();
             return false;
         }
@@ -64,8 +64,8 @@ public class Scraper extends BaseStep implements StepInterface {
 
     @Override
     public boolean processRow(final StepMetaInterface smi, final StepDataInterface sdi) throws KettleException {
-        ScraperData scraperData = (ScraperData) sdi;
-        ScraperMeta scraperMeta = (ScraperMeta) smi;
+        ScraperBaseData scraperBaseData = (ScraperBaseData) sdi;
+        ScraperBaseMeta scraperBaseMeta = (ScraperBaseMeta) smi;
 
         Object[] r = new Object[] {};
 
@@ -74,18 +74,18 @@ public class Scraper extends BaseStep implements StepInterface {
         }
 
 //        String url = "https://ec.europa.eu/eipp/desktop/en/list-view.html";
-        String url = scraperMeta.getSourceUrl();
+        String url = scraperBaseMeta.getSourceUrl();
 
-        r = RowDataUtil.resizeArray(r, scraperData.getOutputRowInterface().size() );    // size could be hard coded as 1
+        r = RowDataUtil.resizeArray(r, scraperBaseData.getOutputRowInterface().size() );    // size could be hard coded as 1
         try {
-            r[scraperData.getOutputRowInterface().size() - 1] = scraperWorker.scrapeUrl(url, loggerForScraper); // index could be hard coded as 0
+            r[scraperBaseData.getOutputRowInterface().size() - 1] = scraper.scrapeUrl(url, loggerForScraper); // index could be hard coded as 0
         } catch (IOException e) {
             logError("There was a problem during data retrieval from " + url);
             e.printStackTrace();
             setOutputDone();
             return false;
         }
-        putRow(scraperData.getOutputRowInterface(), r);
+        putRow(scraperBaseData.getOutputRowInterface(), r);
 
         incrementLinesInput();
         setOutputDone();

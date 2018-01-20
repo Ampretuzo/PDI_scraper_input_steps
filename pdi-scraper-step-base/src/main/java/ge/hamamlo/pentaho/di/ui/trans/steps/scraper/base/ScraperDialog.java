@@ -1,4 +1,4 @@
-package org.pentaho.di.ui.trans.steps.web_scrape;
+package ge.hamamlo.pentaho.di.ui.trans.steps.scraper.base;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CTabFolder;
@@ -14,12 +14,12 @@ import org.pentaho.di.core.Props;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDialogInterface;
-import org.pentaho.di.trans.steps.web_scrape.ScraperMeta;
+import ge.hamamlo.pentaho.di.trans.steps.scraper.base.ScraperBaseMeta;
 import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 
 public class ScraperDialog extends BaseStepDialog implements StepDialogInterface {
-    private final ScraperMeta scraperMeta;
+    private final ScraperBaseMeta scraperBaseMeta;
     private final String initialStepName;
     private final String initialSourceUrl;
     private final String initialOutputFieldName;
@@ -32,7 +32,7 @@ public class ScraperDialog extends BaseStepDialog implements StepDialogInterface
     private class ValueChangeModifyListener implements ModifyListener {
         @Override
         public void modifyText(ModifyEvent e) {
-            scraperMeta.setChanged(true);
+            scraperBaseMeta.setChanged(true);
         }
     }
 
@@ -43,10 +43,10 @@ public class ScraperDialog extends BaseStepDialog implements StepDialogInterface
     }
     public ScraperDialog(Shell parent, BaseStepMeta baseStepMeta, TransMeta transMeta, String stepname) {
         super(parent, baseStepMeta, transMeta, stepname);
-        this.scraperMeta = (ScraperMeta) baseStepMeta;
+        this.scraperBaseMeta = (ScraperBaseMeta) baseStepMeta;
         this.initialStepName = stepname;
-        this.initialSourceUrl = this.scraperMeta.getSourceUrl();
-        this.initialOutputFieldName = this.scraperMeta.getOutputFieldName();
+        this.initialSourceUrl = this.scraperBaseMeta.getSourceUrl();
+        this.initialOutputFieldName = this.scraperBaseMeta.getOutputFieldName();
     }
 
     @Override
@@ -57,9 +57,9 @@ public class ScraperDialog extends BaseStepDialog implements StepDialogInterface
 
         shell = new Shell(parent, SWT.DIALOG_TRIM | SWT.RESIZE | SWT.MAX | SWT.MIN);
         props.setLook(shell);
-        setShellImage(shell, scraperMeta);
+        setShellImage(shell, scraperBaseMeta);
 
-        changed = scraperMeta.hasChanged();
+        changed = scraperBaseMeta.hasChanged();
 
         FormLayout formLayout = new FormLayout();
         formLayout.marginWidth = Const.FORM_MARGIN;
@@ -126,7 +126,7 @@ public class ScraperDialog extends BaseStepDialog implements StepDialogInterface
 
         // url field from prev step
         Label urlFieldLabel = new Label(urlAndRes, SWT.RIGHT);
-        urlFieldLabel.setText("Url field");
+        urlFieldLabel.setText("Url");
         props.setLook(urlFieldLabel);
         FormData urlFieldLabelFormData = new FormData();
         urlFieldLabelFormData.left = new FormAttachment(0, 0);
@@ -224,7 +224,7 @@ public class ScraperDialog extends BaseStepDialog implements StepDialogInterface
         setSize();
 
         getData();
-        scraperMeta.setChanged(backupChanged);
+        scraperBaseMeta.setChanged(backupChanged);
 
         shell.open();
         while (!shell.isDisposed()) {
@@ -236,11 +236,11 @@ public class ScraperDialog extends BaseStepDialog implements StepDialogInterface
     }
 
     private void getData() {
-        if (scraperMeta.getSourceUrl() != null) {
-            sourceUrlTextfield.setText(scraperMeta.getSourceUrl() );
+        if (scraperBaseMeta.getSourceUrl() != null) {
+            sourceUrlTextfield.setText(scraperBaseMeta.getSourceUrl() );
         }
-        if (scraperMeta.getOutputFieldName() != null) {
-            outputFieldInput.setText(scraperMeta.getOutputFieldName() );
+        if (scraperBaseMeta.getOutputFieldName() != null) {
+            outputFieldInput.setText(scraperBaseMeta.getOutputFieldName() );
         }
         wStepname.selectAll();
         wStepname.setFocus();
@@ -248,14 +248,14 @@ public class ScraperDialog extends BaseStepDialog implements StepDialogInterface
 
     private void cancel() {
         stepname = null;
-        scraperMeta.setChanged(backupChanged);
+        scraperBaseMeta.setChanged(backupChanged);
         dispose();
     }
 
     private void ok() {
         stepname = wStepname.getText();
-        scraperMeta.setSourceUrl(sourceUrlTextfield.getText() );
-        scraperMeta.setOutputFieldName(outputFieldInput.getText() );
+        scraperBaseMeta.setSourceUrl(sourceUrlTextfield.getText() );
+        scraperBaseMeta.setOutputFieldName(outputFieldInput.getText() );
         dispose();
     }
 
