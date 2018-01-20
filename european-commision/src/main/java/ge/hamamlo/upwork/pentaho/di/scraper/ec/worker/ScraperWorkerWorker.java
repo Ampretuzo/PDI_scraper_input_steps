@@ -1,16 +1,17 @@
-package org.pentaho.di.trans.steps.web_scrape;
+package ge.hamamlo.upwork.pentaho.di.scraper.ec.worker;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.pentaho.di.trans.steps.web_scrape.Scraper;
 
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 
-import static org.pentaho.di.trans.steps.web_scrape.ScraperWorkerImpl.*;
+import static ge.hamamlo.upwork.pentaho.di.scraper.ec.worker.ScraperWorkerImpl.*;
 
 public class ScraperWorkerWorker implements Runnable {
     private final Semaphore maxConnSemaphore;

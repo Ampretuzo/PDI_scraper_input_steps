@@ -40,15 +40,13 @@ public class Scraper extends BaseStep implements StepInterface {
         ScraperMeta meta = (ScraperMeta) smi;
         ScraperData data = (ScraperData) sdi;
 
-        String scraperPluginClassName = "org.pentaho.di.trans.steps.web_scrape.ScraperWorkerImpl";
         // initialize scraperworker
         try {
-            // TODO: hard coded at the moment
-            Class<? extends ScraperWorker> clazz = (Class<? extends ScraperWorker>) Class.forName(scraperPluginClassName);
+            Class<? extends ScraperWorker> clazz = meta.getScraperWorkerClass();
             // Use the no-arg ctor
             scraperWorker = clazz.getConstructor().newInstance();
         } catch (ReflectiveOperationException e) {
-            logError("Could not instantiate " + scraperPluginClassName + " instance, make sure there is such class in classpath and it has a no-arg ctor!");
+            logError("Could not instantiate " + meta.getScraperWorkerClass().getSimpleName() + " instance, make sure there is such class in classpath and it has a no-arg ctor!");
             e.printStackTrace();
             return false;
         }

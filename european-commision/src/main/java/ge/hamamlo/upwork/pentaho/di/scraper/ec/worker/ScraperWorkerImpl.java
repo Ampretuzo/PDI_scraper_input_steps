@@ -1,8 +1,10 @@
-package org.pentaho.di.trans.steps.web_scrape;
+package ge.hamamlo.upwork.pentaho.di.scraper.ec.worker;
 
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
+import org.pentaho.di.trans.steps.web_scrape.Scraper;
+import org.pentaho.di.trans.steps.web_scrape.ScraperWorker;
 
 import java.io.BufferedReader;
 import java.io.IOException;

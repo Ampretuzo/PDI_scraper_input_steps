@@ -24,22 +24,20 @@ import java.util.List;
 
 import static org.pentaho.di.core.row.ValueMetaInterface.TYPE_STRING;
 
-@Step(
-        id = "ScraperInput",
-        name = "placeholder",
-        categoryDescription = "custom",
-        image = "org/pentaho/di/trans/steps/web_scrape/resources/kafka_consumer.png"
-)
 public class ScraperMeta extends BaseStepMeta implements StepMetaInterface {
     public static final String DEFAULT_OUTPUT_FIELD_NAME = "scrapeResult";
 
     private String sourceUrl;
     private String outputFieldName;
+    private Class<? extends ScraperWorker> scraperWorkerClass;
 
     public ScraperMeta() {
         super();
     }
 
+    /**
+     * Override this method to set {@code scraperWorkerClass} at the startup.
+     */
     @Override
     public void setDefault() {
         sourceUrl = null;
@@ -123,5 +121,13 @@ public class ScraperMeta extends BaseStepMeta implements StepMetaInterface {
 
     public void setSourceUrl(String sourceUrl) {
         this.sourceUrl = sourceUrl;
+    }
+
+    public Class<? extends ScraperWorker> getScraperWorkerClass() {
+        return scraperWorkerClass;
+    }
+
+    public void setScraperWorkerClass(Class<? extends ScraperWorker> scraperWorkerClass) {
+        this.scraperWorkerClass = scraperWorkerClass;
     }
 }
