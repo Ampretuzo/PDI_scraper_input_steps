@@ -20,8 +20,9 @@ public class ScraperHello extends ScraperBaseMeta implements Scraper {
     }
 
     @Override
-    public String scrapeUrl(String url, ScraperBase.LoggerForScraper logger) throws IOException {
+    public void scrapeUrl(String url, ScraperBase.LoggerForScraper logger, ScraperBase.ScraperOutput output) throws IOException {
         logger.logBasic("This demonstrational step returns Hello World every time scraping is requested!");
-        return "Hello World!";
+        output.yield("Hello World!");
+        output.yield(null);
     }
 }

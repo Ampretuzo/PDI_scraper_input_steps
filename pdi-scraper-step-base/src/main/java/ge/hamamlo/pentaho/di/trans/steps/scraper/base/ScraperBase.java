@@ -9,6 +9,9 @@ import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ScraperBase extends BaseStep implements StepInterface {
     public static final int MAX_CONNS_TO_SINGE_SERVER = 32;   // not to be rude, limit simultaneous connectins to server on this #
@@ -23,6 +26,17 @@ public class ScraperBase extends BaseStep implements StepInterface {
         public void logBasic(final String toLog) {
             ScraperBase.this.logBasic(toLog);
         }
+    }
+
+    /**
+     * Used as an output interface for {@link Scraper}.
+     */
+    public interface ScraperOutput {
+        /**
+         * Feed output through this interface, pass null when done.
+         * @param output
+         */
+        void yield(String output);
     }
 
     private Scraper scraper;
@@ -67,29 +81,50 @@ public class ScraperBase extends BaseStep implements StepInterface {
         ScraperBaseData scraperBaseData = (ScraperBaseData) sdi;
         ScraperBaseMeta scraperBaseMeta = (ScraperBaseMeta) smi;
 
-        Object[] r = new Object[] {};
-
         if (first) {
             first = false;
         }
 
-//        String url = "https://ec.europa.eu/eipp/desktop/en/list-view.html";
         String url = scraperBaseMeta.getSourceUrl();
 
-        r = RowDataUtil.resizeArray(r, scraperBaseData.getOutputRowInterface().size() );    // size could be hard coded as 1
+        CountDownLatch cdl = new CountDownLatch(1); // to wait for all outputs
+        AtomicBoolean flagToStop = new AtomicBoolean(false);
+
         try {
-            r[scraperBaseData.getOutputRowInterface().size() - 1] = scraper.scrapeUrl(url, loggerForScraper); // index could be hard coded as 0
+            scraper.scrapeUrl(url, loggerForScraper, (String output) -> {
+                if (flagToStop.get() ) return;
+                if (output == null) {
+                    cdl.countDown();
+                    return;
+                }
+                Object[] r = RowDataUtil.resizeArray(new Object[] {}, scraperBaseData.getOutputRowInterface().size() );    // size could be hard coded as 1
+                r[scraperBaseData.getOutputRowInterface().size() - 1] = output; // index could be hard coded as 0
+                try {
+                    putRow(scraperBaseData.getOutputRowInterface(), r);
+                    incrementLinesInput();
+                } catch (KettleStepException e) {
+                    // *might* need to set a flag, so that we don't attempt to putRow after it failed once
+                    // TODO: handling or wrapping it and throwing back
+                    e.printStackTrace();
+                }
+            } );
         } catch (IOException e) {
             logError("There was a problem during data retrieval from " + url);
             e.printStackTrace();
             setOutputDone();
             return false;
         }
-        putRow(scraperBaseData.getOutputRowInterface(), r);
 
-        incrementLinesInput();
-        setOutputDone();
-
+        try {
+            cdl.await();
+        } catch (InterruptedException e) {
+            flagToStop.set(true);
+            String message = "Interrupted while waiting for " + url;
+            logError(message);
+            throw new KettleException(message);
+        } finally {
+            setOutputDone();
+        }
         return false;
     }
 

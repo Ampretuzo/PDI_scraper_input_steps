@@ -50,7 +50,7 @@ public class ScraperEC implements Scraper {
     public static final String PAGE_URL = "page_url";
 
     @Override
-    public String scrapeUrl(final String url, final ScraperBase.LoggerForScraper logger) throws IOException {
+    public void scrapeUrl(final String url, final ScraperBase.LoggerForScraper logger, ScraperBase.ScraperOutput output) throws IOException {
 
         JsonObject apiResponse = Json.parse(getJsonFromApi(url, logger) ).asObject();
         Semaphore maxConnSemaphore = new Semaphore(MAX_CONNS_TO_SINGE_SERVER);
@@ -81,16 +81,17 @@ public class ScraperEC implements Scraper {
             latchUntilAllDone.await();
         } catch (InterruptedException e) {
             logger.logBasic("Interrupted before all project urls were processed!");
-            return null;
+            return;
         }
 
         JsonArray targetJson = new JsonArray();
         for (Map<String, Object> projectData : allData) {
             JsonObject targetJsonProject = buildTargetJsonProject(projectData);
             if (targetJsonProject == null) continue;
-            targetJson.add(targetJsonProject);
+            output.yield(targetJsonProject.toString() );
         }
-        return targetJson.toString();
+        output.yield(null);
+        return;
     }
 
     private JsonObject buildTargetJsonProject(Map<String, Object> allData) {

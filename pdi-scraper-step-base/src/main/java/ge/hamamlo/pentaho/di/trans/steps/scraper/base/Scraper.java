@@ -7,5 +7,5 @@ import java.io.IOException;
  * Implementations are required to have a no-arg ctor!
  */
 public interface Scraper {
-    String scrapeUrl(String url, ScraperBase.LoggerForScraper logger) throws IOException;
+    void scrapeUrl(String url, ScraperBase.LoggerForScraper logger, ScraperBase.ScraperOutput scraperOutput) throws IOException;
 }
