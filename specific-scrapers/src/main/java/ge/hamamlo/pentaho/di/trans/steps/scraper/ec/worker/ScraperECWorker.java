@@ -31,6 +31,7 @@ public class ScraperECWorker implements Runnable {
     @Override
     public void run() {
         try {
+            // take permission to connect to server
             maxConnSemaphore.acquire();
         } catch (InterruptedException e) {
             logger.logBasic("Interrupted... stopped processing " + projectUrl);
@@ -41,6 +42,7 @@ public class ScraperECWorker implements Runnable {
 
         getAllData(dataToPopulate, projectUrl, logger);
 
+        // notify main thread that this job is done
         latchUntilAllDone.countDown();
     }
 
@@ -55,12 +57,14 @@ public class ScraperECWorker implements Runnable {
             logger.logBasic("Could not retrieve data from " + projectUrl);
             return;
         } finally {
+            // let other threads go on and connect to server
             maxConnSemaphore.release();
         }
 
-        // publisher:type
+        // publisher:type - constant
         result[getIndexForFieldName("publisher_type") ] = "Project promoter";
 
+        // constant as well
         result[getIndexForFieldName("project_language") ] = "en";
 
         // pro_name

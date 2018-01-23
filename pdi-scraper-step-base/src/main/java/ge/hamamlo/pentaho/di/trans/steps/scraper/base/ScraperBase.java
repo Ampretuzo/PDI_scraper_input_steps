@@ -85,7 +85,9 @@ public class ScraperBase extends BaseStep implements StepInterface {
 
         try {
             scraper.scrapeUrl(url, loggerForScraper, (Object[] output) -> {
+                // don't do anything if main thread was interrupted
                 if (flagToDisableStepOutput.get() ) return;
+                // unlock main thread to let it exit processRow
                 if (output == null) {
                     cdl.countDown();
                     return;

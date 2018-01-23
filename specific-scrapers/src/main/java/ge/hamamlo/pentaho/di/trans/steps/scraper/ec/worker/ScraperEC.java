@@ -106,17 +106,19 @@ public class ScraperEC implements Scraper {
         }
 
         try {
+            // wait for all threads to finish
             latchUntilAllDone.await();
         } catch (InterruptedException e) {
             logger.logBasic("Interrupted before all project urls were processed!");
             return;
         }
 
-        JsonArray targetJson = new JsonArray();
         for (Object[] projectData : allData) {
             if (projectData == null) continue;
+            // This is how the data is sent to output
             output.yield(projectData);
         }
+        // send null at the end to signal finish
         output.yield(null);
     }
 
