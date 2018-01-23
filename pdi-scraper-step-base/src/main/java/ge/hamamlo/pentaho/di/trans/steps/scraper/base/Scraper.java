@@ -7,5 +7,12 @@ import java.io.IOException;
  * Implementations are required to have a no-arg ctor!
  */
 public interface Scraper {
+    /**
+     * Specify fields which will be generating when scraping.
+     */
+    FieldDef[] fields();
+    /**
+     * Scrape whatever necessary from given url and feed results to {@code scraperOutput::yield}.
+     */
     void scrapeUrl(String url, ScraperBase.LoggerForScraper logger, ScraperBase.ScraperOutput scraperOutput) throws IOException;
 }

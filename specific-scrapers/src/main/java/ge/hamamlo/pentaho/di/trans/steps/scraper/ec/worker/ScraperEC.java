@@ -3,6 +3,7 @@ package ge.hamamlo.pentaho.di.trans.steps.scraper.ec.worker;
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
+import ge.hamamlo.pentaho.di.trans.steps.scraper.base.FieldDef;
 import ge.hamamlo.pentaho.di.trans.steps.scraper.base.Scraper;
 import ge.hamamlo.pentaho.di.trans.steps.scraper.base.ScraperBase;
 
@@ -12,52 +13,79 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 
 import static ge.hamamlo.pentaho.di.trans.steps.scraper.base.ScraperBase.MAX_CONNS_TO_SINGE_SERVER;
 
 public class ScraperEC implements Scraper {
+    private final static String[] fields = {
+            "timeline_list",
+            "timeline_update",
+            "timeline_from",
+            "page_url",
+            "price",
+            "project_type",
+            "project_status",
+            "project_language",
+            "origin_location_1",
+            "origin_location_2",
+            "origin_location_3",
+            "origin_location_4",
+            "industry1",
+            "industry2",
+            "industry3",
+            "industry4",
+            "industry5",
+            "requirement_type",
+            "descrip1",
+            "descrip2",
+            "descrip3",
+            "descrip4",
+            "descrip5",
+            "descrip6",
+            "descrip7",
+            "publisher_type",
+            "publisher_name",
+            "publisher_role",
+            "publisher_descrip",
+            "pro_name"
+    };
 
-    public static final String PRO_NAME = "pro_name";
-    public static final String TIMELINE = "timeline";
-    public static final String FROM = "from";
-    public static final String LIST = "list";
-    public static final String LAST_UPDATE = "last_update";
-    public static final String PRICE = "price";
-    public static final String ORI = "ori";
-    public static final String PROJECT = "project";
-    public static final String STATUS = "status";
-    public static final String REQUIREMENT_TYPE = "requirement_type";
-    public static final String ORIGIN = "origin";
-    public static final String LOCATION = "location";
-    public static final String LOCATION2 = "location";
-    public static final String INDUSTRY = "industry";
-    public static final String ORI_INDUSTRY = "ori_industry";
-    public static final String PROJECT_TYPE = "project_type";
-    public static final String LANGUAGE = "language";
-    public static final String DESCRIP = "descrip";
-    public static final String PUBLISHER = "publisher";
-    public static final String PUBLISHER_TYPE = "type";
-    public static final String PUBLISHER_NAME = "name";
-    public static final String PUBLISHER_ROLE = "role";
-    public static final String PUBLISHER_DESCRIP = "descrip";
-    public static final String SOURCE_URL = "source_url";
-    public static final String PAGE_URL = "page_url";
+    // utility method
+    public static int getIndexForFieldName(String fieldName) {
+        for (int i = 0; i < fields.length; i++) {
+            String fieldNameOther = fields[i];
+            if (fieldNameOther.equalsIgnoreCase(fieldName) ) return i;
+        }
+        throw new RuntimeException("There is no such field as - " + fieldName);
+    }
+
+    private FieldDef[] createAllStringFieldDefs(String[] fields) {
+        FieldDef[] stringFieldDefs = new FieldDef[fields.length];
+        for (int i = 0; i < fields.length; i++) {
+            String fieldName = fields[i];
+            stringFieldDefs[i] = new FieldDef();
+            stringFieldDefs[i].setFieldType(FieldDef.FieldType.STRING);
+            stringFieldDefs[i].setName(fieldName);
+        }
+        return stringFieldDefs;
+    }
+
+    @Override
+    public FieldDef[] fields() {
+        return createAllStringFieldDefs(fields);
+    }
 
     @Override
     public void scrapeUrl(final String url, final ScraperBase.LoggerForScraper logger, ScraperBase.ScraperOutput output) throws IOException {
-
         JsonObject apiResponse = Json.parse(getJsonFromApi(url, logger) ).asObject();
         Semaphore maxConnSemaphore = new Semaphore(MAX_CONNS_TO_SINGE_SERVER);
         int nProjects = apiResponse.get("projects").asArray().size();
         CountDownLatch latchUntilAllDone = new CountDownLatch(nProjects);
 
-        List<Map<String, Object> > allData = new ArrayList<>();
+        List<Object[] > allData = new ArrayList<>();
         for (int i = 0; i < nProjects; i++) {
             JsonObject projectI = (JsonObject) apiResponse.get("projects").asArray().get(i);
             // necessary values from api
@@ -65,13 +93,13 @@ public class ScraperEC implements Scraper {
             String updateDateStr = projectI.getString("updateDateStr", "");
             String projectUrl = "https://ec.europa.eu/eipp/desktop/en/projects/project-" + projectI.get("id") + ".html";
 
-            allData.add(new HashMap<String, Object>() );
+            allData.add(new Object[fields.length] );
             // maually populate allData with information from api
             // timeline:list
-            if (submitDateStr != null) allData.get(i).put(LIST, submitDateStr);
+            if (submitDateStr != null) allData.get(i)[getIndexForFieldName("timeline_list") ] = submitDateStr;
 
             // timeline:last_update
-            if (updateDateStr != null) allData.get(i).put(LAST_UPDATE, updateDateStr);
+            if (updateDateStr != null) allData.get(i)[getIndexForFieldName("timeline_update") ] = updateDateStr;
 
             Thread thread = new Thread(new ScraperECWorker(maxConnSemaphore, latchUntilAllDone, logger, projectUrl, allData.get(i) ) );
             thread.start();
@@ -85,71 +113,11 @@ public class ScraperEC implements Scraper {
         }
 
         JsonArray targetJson = new JsonArray();
-        for (Map<String, Object> projectData : allData) {
-            JsonObject targetJsonProject = buildTargetJsonProject(projectData);
-            if (targetJsonProject == null) continue;
-            output.yield(targetJsonProject.toString() );
+        for (Object[] projectData : allData) {
+            if (projectData == null) continue;
+            output.yield(projectData);
         }
         output.yield(null);
-        return;
-    }
-
-    private JsonObject buildTargetJsonProject(Map<String, Object> allData) {
-        // NOTE: map structure does not necessarily match object structure
-        if (allData == null) return null;
-
-        String projType = (String) ( (Map<String, Object>) allData.get(PROJECT) ).get(PROJECT_TYPE);
-        String projStatus = (String) ( (Map<String, Object>) allData.get(PROJECT) ).get(STATUS);
-        JsonObject project = new JsonObject()
-                .add(PROJECT_TYPE, projType)
-                .add(STATUS, projStatus)
-                .add(LANGUAGE, new JsonArray().add("en") );
-
-        JsonObject location = new JsonObject()
-                .add(ORIGIN, new JsonObject()
-                        .add(LOCATION2, createJsonArrayFromList( (List<String>) allData.get(LOCATION) ) )
-                );
-
-        JsonObject industry = new JsonObject()
-                .add(ORI_INDUSTRY, createJsonArrayFromList((List<String>) allData.get(ORI_INDUSTRY) ) );
-
-        JsonArray descrip = createJsonArrayFromList( (List<String>) allData.get(DESCRIP));
-
-        Map<String, Object> publisherData = (Map<String, Object>) allData.get(PUBLISHER);
-        JsonObject publisher = new JsonObject()
-                .add(PUBLISHER_TYPE, "Project promoter")
-                .add(PUBLISHER_NAME, (String) publisherData.get(PUBLISHER_NAME))
-                .add(PUBLISHER_ROLE, createJsonArrayFromList((List<String>) publisherData.get(PUBLISHER_ROLE)) );
-        if (publisherData.get(PUBLISHER_DESCRIP) != null) publisher.add(PUBLISHER_DESCRIP, (String) publisherData.get(PUBLISHER_DESCRIP) );
-
-        JsonObject targetProject = new JsonObject()
-                .add(TIMELINE, new JsonObject()
-                        .add(LIST, (String) allData.get(LIST) )
-                        .add(LAST_UPDATE, (String) allData.get(LAST_UPDATE) )
-                        .add(FROM, (String) allData.get(FROM) )
-                )
-                .add(SOURCE_URL, new JsonObject()
-                        .add(PAGE_URL, (String) allData.get(PAGE_URL) )
-                ).add(PRICE, new JsonObject().add(ORI, createJsonArrayFromList( (List<String>) allData.get(ORI) ) ) )
-                .add(PROJECT, project)
-                .add(LOCATION, location)
-                .add(INDUSTRY, industry)
-                .add(REQUIREMENT_TYPE, (String) allData.get(REQUIREMENT_TYPE) )
-                .add(DESCRIP, descrip)
-                .add(PUBLISHER, publisher)
-                ;
-
-        return targetProject;
-    }
-
-    private JsonArray createJsonArrayFromList(List<String> strings) {
-        if (strings == null) return null;
-        JsonArray res = new JsonArray();
-        for (int i = 0; i < strings.size(); i++) {
-            String s = strings.get(i);
-            res.add(s);
-        }
-        return res;
     }
 
     private String getJsonFromApi(String url, ScraperBase.LoggerForScraper logger) throws IOException {

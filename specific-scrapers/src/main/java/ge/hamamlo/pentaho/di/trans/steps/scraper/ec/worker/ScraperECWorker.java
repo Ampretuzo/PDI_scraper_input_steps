@@ -18,9 +18,9 @@ public class ScraperECWorker implements Runnable {
     private final CountDownLatch latchUntilAllDone;
     private final ScraperBase.LoggerForScraper logger;
     private final String projectUrl;
-    private final Map<String, Object> dataToPopulate;
+    private final Object[] dataToPopulate;
 
-    ScraperECWorker(Semaphore maxConnSemaphore, CountDownLatch latchUntilAllDone, ScraperBase.LoggerForScraper logger, String projectUrl, Map<String, Object> dataToPopulate) {
+    ScraperECWorker(Semaphore maxConnSemaphore, CountDownLatch latchUntilAllDone, ScraperBase.LoggerForScraper logger, String projectUrl, Object[] dataToPopulate) {
         this.maxConnSemaphore = maxConnSemaphore;
         this.latchUntilAllDone = latchUntilAllDone;
         this.logger = logger;
@@ -44,7 +44,7 @@ public class ScraperECWorker implements Runnable {
         latchUntilAllDone.countDown();
     }
 
-    private void getAllData(Map<String, Object> result, String projectUrl, ScraperBase.LoggerForScraper logger) {
+    private void getAllData(Object[] result, String projectUrl, ScraperBase.LoggerForScraper logger) {
         Document doc = null;
         try {
             doc = Jsoup.connect(projectUrl)
@@ -58,29 +58,28 @@ public class ScraperECWorker implements Runnable {
             maxConnSemaphore.release();
         }
 
+        // publisher:type
+        result[getIndexForFieldName("publisher_type") ] = "Project promoter";
+
+        result[getIndexForFieldName("project_language") ] = "en";
+
         // pro_name
-        result.put(PRO_NAME, doc.body().getElementsByTag("h1").get(0).text() );
+        result[getIndexForFieldName("pro_name") ] = doc.body().getElementsByTag("h1").get(0).text();
 
         // source_url:page_url
-        result.put(PAGE_URL, projectUrl);
+        result[getIndexForFieldName("page_url")] = projectUrl;
 
         // timeline:from
         String from = getFrom(doc);
-        if (from != null) result.put(FROM, from);
+        if (from != null) result[getIndexForFieldName("timeline_from") ] = from;
 
         // price:ori
-        List<String> ori = new ArrayList<>();
-        result.put(ORI, ori);
         String ori1 = getOri(doc);
-        if (ori1 != null) ori.add(ori1);
-
-        // project
-        HashMap<String, Object> project = new HashMap<>();
-        result.put(PROJECT, project);
+        if (ori1 != null) result[getIndexForFieldName("price") ] = ori1;
 
         // project:status
         String status = getStatus(doc);
-        if (status != null) project.put(STATUS, status);
+        result[getIndexForFieldName("project_status") ] = status;
 
         // requirement_type
         String requirementType = null;
@@ -92,27 +91,23 @@ public class ScraperECWorker implements Runnable {
         } else {
             requirementType = "financing";
         }
-        result.put(REQUIREMENT_TYPE, requirementType);
+        result[getIndexForFieldName("requirement_type") ] = requirementType;
 
         // location:origin:location
         List<String> originLocations = getOriginLocations(doc);
-        result.put(LOCATION, originLocations);
+        setArrayFieldsWithOffset(result, originLocations, 1, "origin_location_");
 
         // industry:ori_industry
         List<String> oriIndustry = getOriIndustries(doc);
-        result.put(ORI_INDUSTRY, oriIndustry);
+        setArrayFieldsWithOffset(result, oriIndustry, 1, "industry");
 
         // project:type
         String type = getType(doc);
-        project.put(PROJECT_TYPE, type);
+        result[getIndexForFieldName("project_type") ] = type;
 
         // descrip
         List<String> descrip = getDescrip(doc);
-        result.put(DESCRIP, descrip);
-
-        // publisher
-        HashMap<String, Object> publisher = new HashMap<>();
-        result.put(PUBLISHER, publisher);
+        setArrayFieldsWithOffset(result, descrip, 1, "descrip");
 
         Element projectPromoterContact = doc.body().getElementById("project-promoter-contact");
         if (projectPromoterContact != null) {
@@ -120,19 +115,25 @@ public class ScraperECWorker implements Runnable {
 
             // first paragraph must be promoter name
             String publisherName = paragraphs.get(0).text();
-            publisher.put(PUBLISHER_NAME, publisherName);
+            result[getIndexForFieldName("publisher_name") ] = publisherName;
 
             // second paragraph must be a promoter role
             String publisherSingleRole = paragraphs.get(1).text();
-            List<String> publisherRole = new ArrayList<>();
-            publisher.put(PUBLISHER_ROLE, publisherRole);
-            publisherRole.add(publisherSingleRole);
+            result[getIndexForFieldName("publisher_role") ] = publisherSingleRole;
 
             // if 3rd paragraph is present, then it must be publisher description:
             if (paragraphs.size() > 2) {
                 String publisherDescription = paragraphs.get(2).text();
-                publisher.put(PUBLISHER_DESCRIP, publisherDescription);
+                result[getIndexForFieldName("publisher_descrip") ] = publisherDescription;
             }
+        }
+    }
+
+    private void setArrayFieldsWithOffset(Object[] result, List<String> values, int offset, String fieldNameBase) {
+        for (int i = 0; i < values.size(); i++) {
+            String value = values.get(i);
+            String fieldName = fieldNameBase + (i + offset);
+            result[getIndexForFieldName(fieldName) ] = value;
         }
     }
 

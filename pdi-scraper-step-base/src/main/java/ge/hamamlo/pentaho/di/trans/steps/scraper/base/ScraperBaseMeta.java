@@ -1,5 +1,6 @@
 package ge.hamamlo.pentaho.di.trans.steps.scraper.base;
 
+import ge.hamamlo.pentaho.di.ui.trans.steps.scraper.base.ScraperDialog;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
@@ -15,20 +16,22 @@ import org.pentaho.di.repository.Repository;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.*;
-import ge.hamamlo.pentaho.di.ui.trans.steps.scraper.base.ScraperDialog;
 import org.pentaho.metastore.api.IMetaStore;
 import org.w3c.dom.Node;
 
+import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
 import java.util.List;
 
+import static ge.hamamlo.pentaho.di.trans.steps.scraper.base.FieldDef.*;
+import static org.pentaho.di.core.row.ValueMetaInterface.TYPE_BOOLEAN;
+import static org.pentaho.di.core.row.ValueMetaInterface.TYPE_NUMBER;
 import static org.pentaho.di.core.row.ValueMetaInterface.TYPE_STRING;
 
 public class ScraperBaseMeta extends BaseStepMeta implements StepMetaInterface {
-    public static final String DEFAULT_OUTPUT_FIELD_NAME = "scrapeResult";
-
     private String sourceUrl;
-    private String outputFieldName;
     private Class<? extends Scraper> scraperClass;
+    private String[] outputFieldNames;
 
     public ScraperBaseMeta() {
         super();
@@ -40,7 +43,7 @@ public class ScraperBaseMeta extends BaseStepMeta implements StepMetaInterface {
     @Override
     public void setDefault() {
         sourceUrl = null;
-        outputFieldName = DEFAULT_OUTPUT_FIELD_NAME;
+        outputFieldNames = new String[0];
     }
 
     @Override
@@ -49,7 +52,7 @@ public class ScraperBaseMeta extends BaseStepMeta implements StepMetaInterface {
         ScraperBaseMeta newScraperBaseMeta = (ScraperBaseMeta) super.clone();
         // Strings are immutable, it's safe to set same
         newScraperBaseMeta.setSourceUrl(this.sourceUrl);
-        newScraperBaseMeta.setOutputFieldName(this.outputFieldName);
+        newScraperBaseMeta.setOutputFieldNames(Arrays.copyOf(outputFieldNames, outputFieldNames.length) );
         return newScraperBaseMeta;
     }
 
@@ -60,10 +63,6 @@ public class ScraperBaseMeta extends BaseStepMeta implements StepMetaInterface {
                 .append(sourceUrl)
                 .append("</sourceUrl>")
                 .append(Const.CR);
-        retval  .append("    <outputFieldName>")
-                .append(outputFieldName)
-                .append("</outputFieldName>")
-                .append(Const.CR);
         return retval.toString();
     }
 
@@ -71,7 +70,12 @@ public class ScraperBaseMeta extends BaseStepMeta implements StepMetaInterface {
     public void loadXML(Node stepnode, List<DatabaseMeta> databases, IMetaStore metaStore) throws KettleXMLException {
         super.loadXML(stepnode, databases, metaStore);
         this.sourceUrl = XMLHandler.getTagValue(stepnode, "sourceUrl");
-        this.outputFieldName = XMLHandler.getTagValue(stepnode, "outputFieldName");
+    }
+
+    public Scraper instantiateScraper() throws ReflectiveOperationException {
+        Class<? extends Scraper> clazz = getScraperClass();
+        // Use the no-arg ctor
+        return clazz.getConstructor().newInstance();
     }
 
     @Override
@@ -93,26 +97,45 @@ public class ScraperBaseMeta extends BaseStepMeta implements StepMetaInterface {
     public void getFields(RowMetaInterface inputRowMeta, String name, RowMetaInterface[] info, StepMeta nextStep,
                           VariableSpace space, Repository repository, IMetaStore metaStore) throws KettleStepException {
         super.getFields(inputRowMeta, name, info, nextStep, space, repository, metaStore);
+        Scraper scraper = null;
         try {
-            ValueMetaInterface outputField = ValueMetaFactory.createValueMeta(TYPE_STRING);
-            outputField.setName(outputFieldName);
-            inputRowMeta.addValueMeta(outputField);
-        } catch (KettlePluginException e) {
-            throw new KettleStepException( e );
+            scraper = instantiateScraper();
+        } catch (ReflectiveOperationException e) {
+            logError("Could not instantiate " + getScraperClass().getSimpleName() + " instance, make sure there is such class in classpath and it has a no-arg ctor!");
+            throw new KettleStepException(e);
         }
+        FieldDef[] fieldDefs = scraper.fields();
+        for (FieldDef fieldDef : fieldDefs) {
+            try {
+                int type = getFieldType(fieldDef);
+                ValueMetaInterface outputField = ValueMetaFactory.createValueMeta(type);
+                outputField.setName(fieldDef.getName() );
+                inputRowMeta.addValueMeta(outputField);
+            } catch (KettlePluginException e) {
+                throw new KettleStepException(e);
+            }
+        }
+    }
 
+    private int getFieldType(FieldDef fieldDef) {
+        int type = -1;
+        switch (fieldDef.getFieldType() ) {
+            case STRING:
+                type = TYPE_STRING;
+                break;
+            case NUMBER:
+                type = TYPE_NUMBER;
+                break;
+            case BOOLEAN:
+                type = TYPE_BOOLEAN;
+                break;
+            default: throw new RuntimeException("Unhandled field type!");
+        }
+        return type;
     }
 
     // *****************************************************************************************************************
     // getters and setters below
-
-    public String getOutputFieldName() {
-        return outputFieldName;
-    }
-
-    public void setOutputFieldName(String outputFieldName) {
-        this.outputFieldName = outputFieldName;
-    }
 
     public String getSourceUrl() {
         return sourceUrl;
@@ -128,5 +151,13 @@ public class ScraperBaseMeta extends BaseStepMeta implements StepMetaInterface {
 
     public void setScraperClass(Class<? extends Scraper> scraperClass) {
         this.scraperClass = scraperClass;
+    }
+
+    public String[] getOutputFieldNames() {
+        return outputFieldNames;
+    }
+
+    public void setOutputFieldNames(String[] outputFieldNames) {
+        this.outputFieldNames = outputFieldNames;
     }
 }

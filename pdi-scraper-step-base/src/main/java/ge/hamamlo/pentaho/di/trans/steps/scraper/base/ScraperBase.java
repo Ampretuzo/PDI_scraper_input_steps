@@ -9,7 +9,6 @@ import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.*;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -22,7 +21,6 @@ public class ScraperBase extends BaseStep implements StepInterface {
         public void logMinimal(final String toLog) {
             ScraperBase.this.logMinimal(toLog);
         }
-
         public void logBasic(final String toLog) {
             ScraperBase.this.logBasic(toLog);
         }
@@ -34,9 +32,8 @@ public class ScraperBase extends BaseStep implements StepInterface {
     public interface ScraperOutput {
         /**
          * Feed output through this interface, pass null when done.
-         * @param output
          */
-        void yield(String output);
+        void yield(Object[] output);
     }
 
     private Scraper scraper;
@@ -54,14 +51,10 @@ public class ScraperBase extends BaseStep implements StepInterface {
         ScraperBaseMeta meta = (ScraperBaseMeta) smi;
         ScraperBaseData data = (ScraperBaseData) sdi;
 
-        // initialize scraperworker
         try {
-            Class<? extends Scraper> clazz = meta.getScraperClass();
-            // Use the no-arg ctor
-            scraper = clazz.getConstructor().newInstance();
+            scraper = meta.instantiateScraper();
         } catch (ReflectiveOperationException e) {
             logError("Could not instantiate " + meta.getScraperClass().getSimpleName() + " instance, make sure there is such class in classpath and it has a no-arg ctor!");
-            e.printStackTrace();
             return false;
         }
 
@@ -88,19 +81,17 @@ public class ScraperBase extends BaseStep implements StepInterface {
         String url = scraperBaseMeta.getSourceUrl();
 
         CountDownLatch cdl = new CountDownLatch(1); // to wait for all outputs
-        AtomicBoolean flagToStop = new AtomicBoolean(false);
+        AtomicBoolean flagToDisableStepOutput = new AtomicBoolean(false);
 
         try {
-            scraper.scrapeUrl(url, loggerForScraper, (String output) -> {
-                if (flagToStop.get() ) return;
+            scraper.scrapeUrl(url, loggerForScraper, (Object[] output) -> {
+                if (flagToDisableStepOutput.get() ) return;
                 if (output == null) {
                     cdl.countDown();
                     return;
                 }
-                Object[] r = RowDataUtil.resizeArray(new Object[] {}, scraperBaseData.getOutputRowInterface().size() );    // size could be hard coded as 1
-                r[scraperBaseData.getOutputRowInterface().size() - 1] = output; // index could be hard coded as 0
                 try {
-                    putRow(scraperBaseData.getOutputRowInterface(), r);
+                    putRow(scraperBaseData.getOutputRowInterface(), output);
                     incrementLinesInput();
                 } catch (KettleStepException e) {
                     // *might* need to set a flag, so that we don't attempt to putRow after it failed once
@@ -110,7 +101,6 @@ public class ScraperBase extends BaseStep implements StepInterface {
             } );
         } catch (IOException e) {
             logError("There was a problem during data retrieval from " + url);
-            e.printStackTrace();
             setOutputDone();
             return false;
         }
@@ -118,7 +108,7 @@ public class ScraperBase extends BaseStep implements StepInterface {
         try {
             cdl.await();
         } catch (InterruptedException e) {
-            flagToStop.set(true);
+            flagToDisableStepOutput.set(true);
             String message = "Interrupted while waiting for " + url;
             logError(message);
             throw new KettleException(message);
