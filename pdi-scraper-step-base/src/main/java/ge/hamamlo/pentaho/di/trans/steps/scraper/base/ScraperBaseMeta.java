@@ -24,14 +24,12 @@ import java.util.Arrays;
 import java.util.List;
 
 import static ge.hamamlo.pentaho.di.trans.steps.scraper.base.FieldDef.*;
-import static org.pentaho.di.core.row.ValueMetaInterface.TYPE_BOOLEAN;
-import static org.pentaho.di.core.row.ValueMetaInterface.TYPE_NUMBER;
-import static org.pentaho.di.core.row.ValueMetaInterface.TYPE_STRING;
+import static ge.hamamlo.pentaho.di.trans.steps.scraper.base.FieldDef.FieldType.*;
+import static org.pentaho.di.core.row.ValueMetaInterface.*;
 
 public class ScraperBaseMeta extends BaseStepMeta implements StepMetaInterface {
     private String sourceUrl;
     private Class<? extends Scraper> scraperClass;
-    private String[] outputFieldNames;
 
     public ScraperBaseMeta() {
         super();
@@ -43,7 +41,6 @@ public class ScraperBaseMeta extends BaseStepMeta implements StepMetaInterface {
     @Override
     public void setDefault() {
         sourceUrl = null;
-        outputFieldNames = new String[0];
     }
 
     @Override
@@ -52,7 +49,6 @@ public class ScraperBaseMeta extends BaseStepMeta implements StepMetaInterface {
         ScraperBaseMeta newScraperBaseMeta = (ScraperBaseMeta) super.clone();
         // Strings are immutable, it's safe to set same
         newScraperBaseMeta.setSourceUrl(this.sourceUrl);
-        newScraperBaseMeta.setOutputFieldNames(Arrays.copyOf(outputFieldNames, outputFieldNames.length) );
         return newScraperBaseMeta;
     }
 
@@ -129,6 +125,9 @@ public class ScraperBaseMeta extends BaseStepMeta implements StepMetaInterface {
             case BOOLEAN:
                 type = TYPE_BOOLEAN;
                 break;
+            case DATE:
+                type = TYPE_DATE;
+                break;
             default: throw new RuntimeException("Unhandled field type!");
         }
         return type;
@@ -151,13 +150,5 @@ public class ScraperBaseMeta extends BaseStepMeta implements StepMetaInterface {
 
     public void setScraperClass(Class<? extends Scraper> scraperClass) {
         this.scraperClass = scraperClass;
-    }
-
-    public String[] getOutputFieldNames() {
-        return outputFieldNames;
-    }
-
-    public void setOutputFieldNames(String[] outputFieldNames) {
-        this.outputFieldNames = outputFieldNames;
     }
 }

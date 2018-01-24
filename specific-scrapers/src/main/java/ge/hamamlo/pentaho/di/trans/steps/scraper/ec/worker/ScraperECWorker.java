@@ -61,6 +61,9 @@ public class ScraperECWorker implements Runnable {
             maxConnSemaphore.release();
         }
 
+        // timeline:insert
+        result[getIndexForFieldName("timeline_insert") ] = new Date();
+
         // publisher:type - constant
         result[getIndexForFieldName("publisher_type") ] = "Project promoter";
 

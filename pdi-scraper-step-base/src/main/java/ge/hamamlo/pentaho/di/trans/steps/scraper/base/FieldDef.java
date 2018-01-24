@@ -2,7 +2,7 @@ package ge.hamamlo.pentaho.di.trans.steps.scraper.base;
 
 public class FieldDef {
     public enum FieldType {
-        STRING, NUMBER, BOOLEAN
+        STRING, NUMBER, BOOLEAN, DATE
     }
 
     private String name;

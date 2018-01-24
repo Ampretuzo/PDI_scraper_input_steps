@@ -50,7 +50,8 @@ public class ScraperEC implements Scraper {
             "publisher_name",
             "publisher_role",
             "publisher_descrip",
-            "pro_name"
+            "pro_name",
+            "timeline_insert"
     };
 
     // utility method
@@ -75,7 +76,9 @@ public class ScraperEC implements Scraper {
 
     @Override
     public FieldDef[] fields() {
-        return createAllStringFieldDefs(fields);
+        FieldDef[] allStringFieldDefs = createAllStringFieldDefs(fields);
+        allStringFieldDefs[getIndexForFieldName("timeline_insert") ].setFieldType(FieldDef.FieldType.DATE);
+        return allStringFieldDefs;
     }
 
     @Override
