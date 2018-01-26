@@ -10,15 +10,15 @@ import org.jsoup.select.Elements;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.Arrays;
-import java.util.Date;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 import static ge.hamamlo.pentaho.di.trans.steps.scraper.ec.worker.ScraperEC.createAllStringFieldDefs;
 import static ge.hamamlo.pentaho.di.trans.steps.scraper.ec.worker.ScraperEC.getIndexForFieldName;
 
 public class SmergersScraper implements Scraper {
-    private static String[] fields = {
+    static String[] fields = {
             "url",
             "country",
             "location",
@@ -53,159 +53,59 @@ public class SmergersScraper implements Scraper {
         URL websiteUrl = new URL(url);
         int pageNumber = 1;
         while (true) {
+            // download the page
             String pageQuery = "&page=" + pageNumber;
             Document doc = Jsoup.connect(url + pageQuery)
                     .userAgent("Mozilla")
                     .timeout(3000)
                     .get();
             pageNumber++;
+
+            // if this is the last page - stop
             if (noMoreBusynessesOnPage(doc) ) {
                 scraperOutput.yield(null);
                 return;
             }
-            Elements listItemsElements = doc.body().getElementsByClass("listing-item-wrapper");
-            for (int i = 0; i < listItemsElements.size(); i++) {
-                Element listingItemWrapper = listItemsElements.get(i);
-                String busynessPageRelative = ((Element) listingItemWrapper.getElementsByTag("a").get(0) ).attr("href");
-                String busynessPageUrl = "http://" +  websiteUrl.getHost() + busynessPageRelative;  // it's ok to use insecure protocol
-                SmergersScraperWorker smergersScraperWorker;    // TODO: this comes later
+
+            int nBusynesses = getNumberOfBusynessesOnPage(doc.body() );
+            CountDownLatch untilAllBusynessesDone = new CountDownLatch(nBusynesses);
+            List<Object[] > results = new ArrayList<>();
+
+            for (int i = 0; i < nBusynesses; i++) {
                 Object[] result = new Object[fields.length];
-                try {
-                    scrapeBusyness(busynessPageUrl, result);
-                } catch (IOException ioe) {
-                    String message = "Fetching page from " + busynessPageUrl + "timed out!";
-                    if (logger == null) {
-                        System.out.println(message);
-                    } else {
-                        logger.logBasic("Fetching page from " + busynessPageUrl + "timed out!");
-                    }
-                    continue;   // Go on to the next one
-                }
+                results.add(result);
+                SmergersScraperWorker smergersScraperWorker = new SmergersScraperWorker(
+                        result,
+                        getBusynessPageUrl(doc.body(), i, websiteUrl.getHost() ),
+                        untilAllBusynessesDone,
+                        logger
+                );
+                Thread thread = new Thread(smergersScraperWorker);
+                thread.start();
+            }
+            try {
+                untilAllBusynessesDone.await();
+            } catch (InterruptedException e) {
+                // just ignore and move on to the next page
+                logger.logBasic("Interrupted when waiting for page no. " + pageNumber);
+                continue;
+            }
+            for (Object[] result : results) {
+                if (result == null) continue;
                 scraperOutput.yield(result);
             }
         }
     }
 
-    private void scrapeBusyness(String busynessPageUrl, Object[] result) throws IOException {
-        Document doc = Jsoup.connect(busynessPageUrl)
-                .userAgent("Mozilla")
-                .timeout(3000)
-                .get();
-        String proName = getProjectName(doc.body() );
-
-        String country = getCountry(doc.body() );
-
-        String oriPrice = getOriPrice(doc.body() );
-
-        String tradeMotivation = getTradeMotivation(doc.body() );
-
-        String fixedAsset = getFixedAsset(doc.body() );
-
-        String runRateSales = getRunRateSales(doc.body() );
-        if (runRateSales.equalsIgnoreCase("nil") ) runRateSales = null;
-
-        String ebidtaMargin = getEbidtaMargin(doc.body() );
-
-        List<String> oriIndustries = getOriIndustries(doc.body() );
-
-        String location = getLocation(doc.body() );
-
-        String publisherType = getPublisherType(doc.body() );
-
-        String projectStatus = getProjectStatus(doc.body() );
-
-        String descrip = getDescrip(doc.body() );
-
-        result[getIndexForFieldName("pro_name", fields) ] = proName;
-        result[getIndexForFieldName("url", fields) ] = busynessPageUrl;
-        result[getIndexForFieldName("country", fields) ] = country;
-        result[getIndexForFieldName("location", fields) ] = location;
-        result[getIndexForFieldName("price_ori", fields) ] = oriPrice;
-        result[getIndexForFieldName("trade_motivation", fields) ] = tradeMotivation;
-        result[getIndexForFieldName("fixed_asset", fields) ] = fixedAsset;
-        result[getIndexForFieldName("sales", fields) ] = runRateSales;
-        result[getIndexForFieldName("ebitda_margin", fields) ] = ebidtaMargin;
-        setArrayFieldsWithOffset(result, oriIndustries, 1, "ori_industry_", fields);
-        result[getIndexForFieldName("publisher_type", fields) ] = publisherType;
-        result[getIndexForFieldName("project_status", fields) ] = projectStatus;
-        result[getIndexForFieldName("descrip", fields) ] = descrip;
-        result[getIndexForFieldName("timeline_insert", fields) ] = new Date();
-        result[getIndexForFieldName("requirement_type", fields) ] = "sell";
-        result[getIndexForFieldName("language", fields) ] = "en";
+    private int getNumberOfBusynessesOnPage(Element body) {
+        return body.getElementsByClass("listing-item-wrapper").size();
     }
 
-    public void setArrayFieldsWithOffset(Object[] result, List<String> values, int offset, String fieldNameBase, String[] fields) {
-        for (int i = 0; i < values.size(); i++) {
-            String value = values.get(i);
-            String fieldName = fieldNameBase + (i + offset);
-            result[getIndexForFieldName(fieldName, fields) ] = value;
-        }
-    }
-
-    private String getDescrip(Element body) {
-        return body.getElementsByClass("business-description").text();
-    }
-
-    private String getProjectStatus(Element body) {
-        Element keyFactsContainer = getKeyFactsContainer(body);
-        return keyFactsContainer.child(10).child(1).text();
-    }
-
-    private String getPublisherType(Element body) {
-        Element keyFactsContainer = getKeyFactsContainer(body);
-        return keyFactsContainer.child(9).child(1).text();
-    }
-
-    private String getLocation(Element body) {
-        Element keyFactsContainer = getKeyFactsContainer(body);
-        return keyFactsContainer.child(7).child(1).text();
-    }
-
-    private List<String> getOriIndustries(Element body) {
-        Element keyFactsContainer = getKeyFactsContainer(body);
-        return Arrays.asList(keyFactsContainer.child(6).child(1).child(0).attr("data-title").split(", ") );
-    }
-
-    private String getEbidtaMargin(Element body) {
-        Element keyFactsContainer = getKeyFactsContainer(body);
-        return keyFactsContainer.child(5).child(1).text();
-    }
-
-    private String getRunRateSales(Element body) {
-        Element keyFacts = getKeyFactsContainer(body);
-        return keyFacts.child(4).child(1).text();
-    }
-
-    private Element getKeyFactsContainer(Element body) {
-        return body.getElementsByClass("business-key-facts").get(0);
-    }
-
-    private String getFixedAsset(Element body) {
-        if (body.getElementsByClass("transaction-reason").size() < 2) return null;
-        Element container = body.getElementsByClass("transaction-reason").get(1);
-        if (container.children().size() != 3) return null;
-        String currency = container.getElementsByClass("currency-label").get(0).text();
-        String askingPrice = container.getElementsByClass("asking-price").get(0).text();
-        return currency + " " + askingPrice;
-    }
-
-    private String getTradeMotivation(Element body) {
-        return body.getElementsByClass("transaction-reason").get(0).text();
-    }
-
-    private String getOriPrice(Element body) {
-        Element container = body.getElementsByClass("transaction-one-line").get(0);
-        String currency = container.getElementsByClass("currency-label").get(0).text();
-        String askingPrice = container.getElementsByClass("asking-price").get(0).text();
-        return currency + " " + askingPrice;
-    }
-
-    private String getCountry(Element body) {
-        return body.getElementsByClass("profile-breadcrumbs").get(0).getElementsByAttributeValue("itemprop", "name").get(1).text();
-    }
-
-    private String getProjectName(Element body) {
-        return body.getElementsByClass("single-line-description").get(0).text();
+    private String getBusynessPageUrl(Element body, int idx, String host) {
+        Element listingItemWrapper = body.getElementsByClass("listing-item-wrapper").get(idx);
+        String busynessPageRelative = ((Element) listingItemWrapper.getElementsByTag("a").get(0) ).attr("href");
+        // it's ok to use insecure protocol
+        return "http://" +  host + busynessPageRelative;
     }
 
     private boolean noMoreBusynessesOnPage(Document doc) {
