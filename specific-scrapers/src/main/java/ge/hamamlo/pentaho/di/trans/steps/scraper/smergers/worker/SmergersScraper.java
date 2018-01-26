@@ -11,6 +11,7 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import static ge.hamamlo.pentaho.di.trans.steps.scraper.ec.worker.ScraperEC.createAllStringFieldDefs;
@@ -64,12 +65,14 @@ public class SmergersScraper implements Scraper {
                 String busynessPageRelative = ((Element) listingItemWrapper.getElementsByTag("a").get(0) ).attr("href");
                 String busynessPageUrl = "http://" +  websiteUrl.getHost() + busynessPageRelative;  // it's ok to use insecure protocol
                 SmergersScraperWorker smergersScraperWorker;    // TODO: this comes later
-                scrapeBusyness(busynessPageUrl);
+                Object[] result = new Object[fields.length];
+                scrapeBusyness(busynessPageUrl, result);
+                scraperOutput.yield(result);
             }
         }
     }
 
-    private void scrapeBusyness(String busynessPageUrl) throws IOException {
+    private void scrapeBusyness(String busynessPageUrl, Object[] result) throws IOException {
         Document doc = Jsoup.connect(busynessPageUrl)
                 .userAgent("Mozilla")
                 .timeout(3000)
@@ -99,24 +102,22 @@ public class SmergersScraper implements Scraper {
 
         String descrip = getDescrip(doc.body() );
 
-        // print to test
-        System.out.println(
-                proName + "\n" +
-                        busynessPageUrl + "\n" +
-                        country + "\n" +
-                        oriPrice + "\n" +
-                        tradeMotivation + "\n" +
-                        fixedAsset + "\n" +
-                        runRateSales + "\n" +
-                        ebidtaMargin + "\n" +
-                        oriIndustries + "\n" +
-                        location + "\n" +
-                        publisherType + "\n" +
-                        projectStatus + "\n" +
-                        descrip
-        );
-
-        System.out.println("\n");
+        result[getIndexForFieldName("pro_name", fields) ] = proName;
+        result[getIndexForFieldName("url", fields) ] = busynessPageUrl;
+        result[getIndexForFieldName("country", fields) ] = country;
+        result[getIndexForFieldName("location", fields) ] = location;
+        result[getIndexForFieldName("price_ori", fields) ] = oriPrice;
+        result[getIndexForFieldName("trade_motivation", fields) ] = tradeMotivation;
+        result[getIndexForFieldName("fixed_asset", fields) ] = fixedAsset;
+        result[getIndexForFieldName("sales", fields) ] = runRateSales;
+        result[getIndexForFieldName("ebitda_margin", fields) ] = ebidtaMargin;
+        result[getIndexForFieldName("ori_industry", fields) ] = oriIndustries;
+        result[getIndexForFieldName("publisher_type", fields) ] = publisherType;
+        result[getIndexForFieldName("project_status", fields) ] = projectStatus;
+        result[getIndexForFieldName("descrip", fields) ] = descrip;
+        result[getIndexForFieldName("timeline_insert", fields) ] = new Date();
+        result[getIndexForFieldName("requirement_type", fields) ] = "sell";
+        result[getIndexForFieldName("language", fields) ] = "en";
     }
 
     private String getDescrip(Element body) {

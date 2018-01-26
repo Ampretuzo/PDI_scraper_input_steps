@@ -2,6 +2,12 @@ package ge.hamamlo.pentaho.di.trans.steps.scraper.smergers.worker;
 
 import org.junit.Test;
 
+import java.util.Arrays;
+
+/*
+ * NOTE: this is not a real test! It is there just to spare Spoon deployment time by doing System.out.println() !
+ */
+
 public class SmergersScraperTest {
     @Test
     public void scrapeUrl() throws Exception {
@@ -14,7 +20,7 @@ public class SmergersScraperTest {
                         System.out.println("done!");
                         return;
                     }
-                    System.out.println("page no. " + output[0].toString() );
+                    System.out.println("Result: " + Arrays.toString(output) );
                 }
         );
     }
