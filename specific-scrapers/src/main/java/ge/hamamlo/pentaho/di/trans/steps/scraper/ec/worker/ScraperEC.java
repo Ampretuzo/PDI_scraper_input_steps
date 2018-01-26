@@ -55,7 +55,7 @@ public class ScraperEC implements Scraper {
     };
 
     // utility method
-    public static int getIndexForFieldName(String fieldName) {
+    static int getIndexForFieldName(String fieldName) {
         for (int i = 0; i < fields.length; i++) {
             String fieldNameOther = fields[i];
             if (fieldNameOther.equalsIgnoreCase(fieldName) ) return i;
@@ -63,7 +63,16 @@ public class ScraperEC implements Scraper {
         throw new RuntimeException("There is no such field as - " + fieldName);
     }
 
-    private FieldDef[] createAllStringFieldDefs(String[] fields) {
+    // utility method
+    public static int getIndexForFieldName(String fieldName, String[] fields) {
+        for (int i = 0; i < fields.length; i++) {
+            String fieldNameOther = fields[i];
+            if (fieldNameOther.equalsIgnoreCase(fieldName) ) return i;
+        }
+        throw new RuntimeException("There is no such field as - " + fieldName);
+    }
+
+    public static FieldDef[] createAllStringFieldDefs(String[] fields) {
         FieldDef[] stringFieldDefs = new FieldDef[fields.length];
         for (int i = 0; i < fields.length; i++) {
             String fieldName = fields[i];
