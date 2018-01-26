@@ -28,7 +28,11 @@ public class SmergersScraper implements Scraper {
             "fixed_asset",
             "sales",
             "ebitda_margin",
-            "ori_industry",
+            "ori_industry_1",
+            "ori_industry_2",
+            "ori_industry_3",
+            "ori_industry_4",
+            "ori_industry_5",
             "publisher_type",
             "project_status",
             "descrip",
@@ -69,7 +73,12 @@ public class SmergersScraper implements Scraper {
                 try {
                     scrapeBusyness(busynessPageUrl, result);
                 } catch (IOException ioe) {
-                    logger.logBasic("Fetching page from " + busynessPageUrl + "timed out!");
+                    String message = "Fetching page from " + busynessPageUrl + "timed out!";
+                    if (logger == null) {
+                        System.out.println(message);
+                    } else {
+                        logger.logBasic("Fetching page from " + busynessPageUrl + "timed out!");
+                    }
                     continue;   // Go on to the next one
                 }
                 scraperOutput.yield(result);
@@ -116,13 +125,21 @@ public class SmergersScraper implements Scraper {
         result[getIndexForFieldName("fixed_asset", fields) ] = fixedAsset;
         result[getIndexForFieldName("sales", fields) ] = runRateSales;
         result[getIndexForFieldName("ebitda_margin", fields) ] = ebidtaMargin;
-        result[getIndexForFieldName("ori_industry", fields) ] = oriIndustries;
+        setArrayFieldsWithOffset(result, oriIndustries, 1, "ori_industry_", fields);
         result[getIndexForFieldName("publisher_type", fields) ] = publisherType;
         result[getIndexForFieldName("project_status", fields) ] = projectStatus;
         result[getIndexForFieldName("descrip", fields) ] = descrip;
         result[getIndexForFieldName("timeline_insert", fields) ] = new Date();
         result[getIndexForFieldName("requirement_type", fields) ] = "sell";
         result[getIndexForFieldName("language", fields) ] = "en";
+    }
+
+    public void setArrayFieldsWithOffset(Object[] result, List<String> values, int offset, String fieldNameBase, String[] fields) {
+        for (int i = 0; i < values.size(); i++) {
+            String value = values.get(i);
+            String fieldName = fieldNameBase + (i + offset);
+            result[getIndexForFieldName(fieldName, fields) ] = value;
+        }
     }
 
     private String getDescrip(Element body) {
