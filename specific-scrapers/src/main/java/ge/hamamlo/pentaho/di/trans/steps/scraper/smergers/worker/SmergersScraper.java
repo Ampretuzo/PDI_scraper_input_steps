@@ -66,7 +66,12 @@ public class SmergersScraper implements Scraper {
                 String busynessPageUrl = "http://" +  websiteUrl.getHost() + busynessPageRelative;  // it's ok to use insecure protocol
                 SmergersScraperWorker smergersScraperWorker;    // TODO: this comes later
                 Object[] result = new Object[fields.length];
-                scrapeBusyness(busynessPageUrl, result);
+                try {
+                    scrapeBusyness(busynessPageUrl, result);
+                } catch (IOException ioe) {
+                    logger.logBasic("Fetching page from " + busynessPageUrl + "timed out!");
+                    continue;   // Go on to the next one
+                }
                 scraperOutput.yield(result);
             }
         }
@@ -159,7 +164,9 @@ public class SmergersScraper implements Scraper {
     }
 
     private String getFixedAsset(Element body) {
+        if (body.getElementsByClass("transaction-reason").size() < 2) return null;
         Element container = body.getElementsByClass("transaction-reason").get(1);
+        if (container.children().size() != 3) return null;
         String currency = container.getElementsByClass("currency-label").get(0).text();
         String askingPrice = container.getElementsByClass("asking-price").get(0).text();
         return currency + " " + askingPrice;
