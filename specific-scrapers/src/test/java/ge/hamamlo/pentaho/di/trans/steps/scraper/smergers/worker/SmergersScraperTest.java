@@ -9,7 +9,7 @@ import java.util.Arrays;
  */
 
 public class SmergersScraperTest {
-    @Test
+//    @Test
     public void scrapeUrl() throws Exception {
         SmergersScraper smergersScraper = new SmergersScraper();
         smergersScraper.scrapeUrl(
