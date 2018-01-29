@@ -10,7 +10,6 @@ import java.util.Arrays;
  */
 
 public class SmergersScraperTest {
-    // disabled so that it does not launch when building with mvn clean package (-DskipTests=true would also do the trick)
     @Test
     public void scrapeUrl() throws Exception {
         SmergersScraper smergersScraper = new SmergersScraper();
