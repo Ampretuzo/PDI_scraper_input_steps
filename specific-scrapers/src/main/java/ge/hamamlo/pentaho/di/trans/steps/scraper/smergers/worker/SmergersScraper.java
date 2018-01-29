@@ -3,6 +3,7 @@ package ge.hamamlo.pentaho.di.trans.steps.scraper.smergers.worker;
 import ge.hamamlo.pentaho.di.trans.steps.scraper.base.FieldDef;
 import ge.hamamlo.pentaho.di.trans.steps.scraper.base.Scraper;
 import ge.hamamlo.pentaho.di.trans.steps.scraper.base.ScraperBase;
+import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -51,6 +52,11 @@ public class SmergersScraper implements Scraper {
     @Override
     public void scrapeUrl(String url, ScraperBase.LoggerForScraper logger, ScraperBase.ScraperOutput scraperOutput) throws IOException {
         URL websiteUrl = new URL(url);
+        // setting dollar as session currency
+        String sessionId = Jsoup.connect("http://" + websiteUrl.getHost() + "/ajax/set_currency/?id=8")
+                .method(Connection.Method.GET)
+                .execute()
+                .cookie("sessionid");
         int pageNumber = 1;
         while (true) {
             // download the page
@@ -58,6 +64,7 @@ public class SmergersScraper implements Scraper {
             Document doc = Jsoup.connect(url + pageQuery)
                     .userAgent("Mozilla")
                     .timeout(3000)
+                    .cookie("sessionid", sessionId)
                     .get();
             pageNumber++;
 
@@ -78,7 +85,8 @@ public class SmergersScraper implements Scraper {
                         result,
                         getBusynessPageUrl(doc.body(), i, websiteUrl.getHost() ),
                         untilAllBusynessesDone,
-                        logger
+                        logger,
+                        sessionId
                 );
                 Thread thread = new Thread(smergersScraperWorker);
                 thread.start();

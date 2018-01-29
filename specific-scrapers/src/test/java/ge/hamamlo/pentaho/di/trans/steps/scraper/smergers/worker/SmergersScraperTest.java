@@ -5,11 +5,13 @@ import org.junit.Test;
 import java.util.Arrays;
 
 /*
- * NOTE: this is not a real test! It is there just to spare Spoon deployment time by doing System.out.println() !
+ * NOTE: this is not a real unit test! It is there just to spare Spoon
+ * re-deployment cycle time by doing System.out.println() where necessary and setting debug points !
  */
 
 public class SmergersScraperTest {
-//    @Test
+    // disabled so that it does not launch when building with mvn clean package (-DskipTests=true would also do the trick)
+    @Test
     public void scrapeUrl() throws Exception {
         SmergersScraper smergersScraper = new SmergersScraper();
         smergersScraper.scrapeUrl(

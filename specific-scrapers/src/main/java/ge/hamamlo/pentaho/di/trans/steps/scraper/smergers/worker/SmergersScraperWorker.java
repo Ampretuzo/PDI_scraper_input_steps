@@ -19,12 +19,14 @@ public class SmergersScraperWorker implements Runnable {
     private final String busynessPageUrl;
     private final ScraperBase.LoggerForScraper logger;
     private final CountDownLatch untilAllBusynessesDone;
+    private final String sessionId;
 
-    public SmergersScraperWorker(Object[] result, String busynessPageUrl, CountDownLatch untillAllBusynessesDone, ScraperBase.LoggerForScraper logger) {
+    public SmergersScraperWorker(Object[] result, String busynessPageUrl, CountDownLatch untillAllBusynessesDone, ScraperBase.LoggerForScraper logger, String sessionId) {
         this.result = result;
         this.busynessPageUrl = busynessPageUrl;
         this.logger = logger;
         this.untilAllBusynessesDone = untillAllBusynessesDone;
+        this.sessionId = sessionId;
     }
 
     @Override
@@ -46,6 +48,7 @@ public class SmergersScraperWorker implements Runnable {
     private void scrapeBusyness(String busynessPageUrl, Object[] result) throws IOException {
         Document doc = Jsoup.connect(busynessPageUrl)
                 .userAgent("Mozilla")
+                .cookie("sessionid", sessionId)
                 .timeout(3000)
                 .get();
         String proName = getProjectName(doc.body() );
