@@ -55,10 +55,7 @@ public class ScraperBaseMeta extends BaseStepMeta implements StepMetaInterface {
     @Override
     public String getXML() throws KettleException {
         StringBuilder retval = new StringBuilder(300);
-        retval  .append("    <sourceUrl>")
-                .append(sourceUrl)
-                .append("</sourceUrl>")
-                .append(Const.CR);
+        retval.append("    " + XMLHandler.addTagValue("sourceUrl", sourceUrl) );
         return retval.toString();
     }
 
