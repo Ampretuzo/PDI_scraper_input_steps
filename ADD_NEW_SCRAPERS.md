@@ -9,7 +9,7 @@ Assuming you want to create an `xxx` kind of scraper:
 - annotate `ScraperXXXMeta` with `@Step` annotation, that enables PDI to detect custom step when scanning for plugins and picks up step information from annotation fields.
 - populate `id`, `name`, `categoryDescription` and `image` fields of `@Step` with desired values.
 
-After completing the steps, rebuild _specific-scrapers_ module using ```mvn clean package -DskipTests=true``` command and drop the generated jar file from _specific-scrapers_ module into PDI plugins location.
+After completing the steps, rebuild _specific-scrapers_ module using ```mvn clean install -DskipTests=true``` command and drop the generated jar file from _specific-scrapers_ module into PDI plugins location.
 
 Please see `ge.hamamlo.pentaho.di.trans.steps.scraper.ec` package for concrete example of above described steps.
 
@@ -45,4 +45,10 @@ This will spare **a lot** of time since you won't have to redeploy the plugin in
 Simply run the test in debug mode with breakpoints enabled to see what it does in runtime. That's all you have to do to debug it - junit dependency is already included in the project. Please see concrete example in `SmergersScraperTest`.
 
 _NOTE_: this is not a _real_ unit test, it is just a convenience to launch desired method.
+
+###### Building and adding new dependency libraries
+
+To build the project simply run: `mvn clean install -DskipTests=true`. Find distribution in `specific-scrapers/target/drop-in-plugins.zip` file, it should be ready to be dropped in Kettle plugins folder - it will contain all the dependent libraries.
+
+To add new libraries to the project, you can add it as **provided** dependency in _specific-scrapers_ _pom.xml_. Make sure the new dependencies are _provided scope_, since the build is configured to pick them up and put them in libs folder automatically.
 
