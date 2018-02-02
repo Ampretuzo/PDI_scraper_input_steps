@@ -1,7 +1,6 @@
 package ge.hamamlo.pentaho.di.trans.steps.scraper.ec.worker;
 
 import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import ge.hamamlo.pentaho.di.trans.steps.scraper.base.FieldDef;
 import ge.hamamlo.pentaho.di.trans.steps.scraper.base.Scraper;
@@ -13,7 +12,8 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.Charset;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 
