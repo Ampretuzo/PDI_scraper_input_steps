@@ -1,6 +1,7 @@
 package ge.hamamlo.pentaho.di.trans.steps.scraper.mergerdeals.worker;
 
 import ge.hamamlo.pentaho.di.trans.steps.scraper.base.Scraper;
+import ge.hamamlo.pentaho.di.trans.steps.scraper.base.ScraperInformationDisabled;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -17,8 +18,10 @@ public class MergerDealsScraperTest {
                         System.out.println("done!");
                         return;
                     }
-                    System.out.println(Arrays.toString(output) );
-                });
+                    System.out.println(Arrays.toString(output));
+                },
+                new ScraperInformationDisabled()
+        );
     }
 
 }

@@ -1,8 +1,10 @@
 package ge.hamamlo.pentaho.di.trans.steps.scraper.base;
 
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoCollection;
+import org.bson.Document;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
-import org.pentaho.di.core.row.RowDataUtil;
 import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
@@ -14,6 +16,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ScraperBase extends BaseStep implements StepInterface {
     public static final int MAX_CONNS_TO_SINGE_SERVER = 32;   // not to be rude, limit simultaneous connectins to server on this #
+    private ScraperInformation scraperInformation;
+
     /**
      * Used to enable {@link Scraper} to log when it needs to.
      */
@@ -24,16 +28,6 @@ public class ScraperBase extends BaseStep implements StepInterface {
         public void logBasic(final String toLog) {
             ScraperBase.this.logBasic(toLog);
         }
-    }
-
-    /**
-     * Used as an output interface for {@link Scraper}.
-     */
-    public interface ScraperOutput {
-        /**
-         * Feed output through this interface, pass null when done.
-         */
-        void yield(Object[] output);
     }
 
     private Scraper scraper;
@@ -65,6 +59,16 @@ public class ScraperBase extends BaseStep implements StepInterface {
             logError("Failed to initialize output row structure...");
             e.printStackTrace();
             return false;
+        }
+
+        // in theory dependency injection should be used but that would be an overkill for the project of this scope
+        if (!meta.isReProcessing() ) {
+            MongoCollection<Document> collection = new MongoClient(meta.getMongoHost(), meta.getMongoPort() )
+                    .getDatabase(meta.getMongoDbName() )
+                    .getCollection(meta.getMongoCollectionName() );
+            scraperInformation = new ScraperInformationDb(collection);
+        } else {
+            scraperInformation = new ScraperInformationDisabled();
         }
         return true;
     }
@@ -100,7 +104,7 @@ public class ScraperBase extends BaseStep implements StepInterface {
                     // TODO: handling or wrapping it and throwing back
                     e.printStackTrace();
                 }
-            } );
+            }, scraperInformation);
         } catch (IOException e) {
             logError("There was a problem during data retrieval from " + url);
             setOutputDone();

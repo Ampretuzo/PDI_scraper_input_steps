@@ -1,8 +1,6 @@
 package ge.hamamlo.pentaho.di.trans.steps.scraper.smergers.worker;
 
-import ge.hamamlo.pentaho.di.trans.steps.scraper.base.FieldDef;
-import ge.hamamlo.pentaho.di.trans.steps.scraper.base.Scraper;
-import ge.hamamlo.pentaho.di.trans.steps.scraper.base.ScraperBase;
+import ge.hamamlo.pentaho.di.trans.steps.scraper.base.*;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -18,6 +16,9 @@ import java.util.concurrent.CountDownLatch;
 import static ge.hamamlo.pentaho.di.trans.steps.scraper.ec.worker.ScraperEC.createAllStringFieldDefs;
 import static ge.hamamlo.pentaho.di.trans.steps.scraper.ec.worker.ScraperEC.getIndexForFieldName;
 
+/**
+ * does not support skipping already processed urls
+ */
 public class SmergersScraper implements Scraper {
     static String[] fields = {
             "url",
@@ -50,7 +51,7 @@ public class SmergersScraper implements Scraper {
     }
 
     @Override
-    public void scrapeUrl(String url, ScraperBase.LoggerForScraper logger, ScraperBase.ScraperOutput scraperOutput) throws IOException {
+    public void scrapeUrl(String url, ScraperBase.LoggerForScraper logger, ScraperOutput scraperOutput, ScraperInformation scraperInformation) throws IOException {
         URL websiteUrl = new URL(url);
         // setting dollar as session currency
         String sessionId = Jsoup.connect("http://" + websiteUrl.getHost() + "/ajax/set_currency/?id=8")

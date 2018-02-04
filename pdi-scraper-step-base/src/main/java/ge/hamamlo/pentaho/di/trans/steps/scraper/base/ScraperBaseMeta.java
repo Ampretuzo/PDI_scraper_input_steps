@@ -1,7 +1,6 @@
 package ge.hamamlo.pentaho.di.trans.steps.scraper.base;
 
 import ge.hamamlo.pentaho.di.ui.trans.steps.scraper.base.ScraperDialog;
-import org.pentaho.di.core.Const;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettlePluginException;
@@ -19,17 +18,19 @@ import org.pentaho.di.trans.step.*;
 import org.pentaho.metastore.api.IMetaStore;
 import org.w3c.dom.Node;
 
-import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
 import java.util.List;
 
-import static ge.hamamlo.pentaho.di.trans.steps.scraper.base.FieldDef.*;
-import static ge.hamamlo.pentaho.di.trans.steps.scraper.base.FieldDef.FieldType.*;
 import static org.pentaho.di.core.row.ValueMetaInterface.*;
 
 public class ScraperBaseMeta extends BaseStepMeta implements StepMetaInterface {
     private String sourceUrl;
     private Class<? extends Scraper> scraperClass;
+    // TODO: hard coded at the moment
+    private boolean reProcessing = false;
+    private String mongoHost = "localhost";
+    private Integer mongoPort = 27017;
+    private String mongoDbName = "test";
+    private String mongoCollectionName = "test";
 
     public ScraperBaseMeta() {
         super();
@@ -41,6 +42,7 @@ public class ScraperBaseMeta extends BaseStepMeta implements StepMetaInterface {
     @Override
     public void setDefault() {
         sourceUrl = null;
+        reProcessing = true;
     }
 
     @Override
@@ -147,5 +149,45 @@ public class ScraperBaseMeta extends BaseStepMeta implements StepMetaInterface {
 
     public void setScraperClass(Class<? extends Scraper> scraperClass) {
         this.scraperClass = scraperClass;
+    }
+
+    public boolean isReProcessing() {
+        return reProcessing;
+    }
+
+    public void setReProcessing(boolean reProcessing) {
+        this.reProcessing = reProcessing;
+    }
+
+    public String getMongoHost() {
+        return mongoHost;
+    }
+
+    public void setMongoHost(String mongoHost) {
+        this.mongoHost = mongoHost;
+    }
+
+    public Integer getMongoPort() {
+        return mongoPort;
+    }
+
+    public void setMongoPort(Integer mongoPort) {
+        this.mongoPort = mongoPort;
+    }
+
+    public String getMongoDbName() {
+        return mongoDbName;
+    }
+
+    public void setMongoDbName(String mongoDbName) {
+        this.mongoDbName = mongoDbName;
+    }
+
+    public String getMongoCollectionName() {
+        return mongoCollectionName;
+    }
+
+    public void setMongoCollectionName(String mongoCollectionName) {
+        this.mongoCollectionName = mongoCollectionName;
     }
 }

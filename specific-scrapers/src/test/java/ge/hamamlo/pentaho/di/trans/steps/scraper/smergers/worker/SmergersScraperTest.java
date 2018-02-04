@@ -22,7 +22,8 @@ public class SmergersScraperTest {
                         return;
                     }
                     System.out.println("Result: " + Arrays.toString(output) );
-                }
+                },
+                null
         );
     }
 

@@ -2,9 +2,7 @@ package ge.hamamlo.pentaho.di.trans.steps.scraper.ec.worker;
 
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
-import ge.hamamlo.pentaho.di.trans.steps.scraper.base.FieldDef;
-import ge.hamamlo.pentaho.di.trans.steps.scraper.base.Scraper;
-import ge.hamamlo.pentaho.di.trans.steps.scraper.base.ScraperBase;
+import ge.hamamlo.pentaho.di.trans.steps.scraper.base.*;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -19,6 +17,9 @@ import java.util.concurrent.Semaphore;
 
 import static ge.hamamlo.pentaho.di.trans.steps.scraper.base.ScraperBase.MAX_CONNS_TO_SINGE_SERVER;
 
+/**
+ * does not support skipping already processed urls
+ */
 public class ScraperEC implements Scraper {
     private final static String[] fields = {
             "timeline_list",
@@ -91,7 +92,7 @@ public class ScraperEC implements Scraper {
     }
 
     @Override
-    public void scrapeUrl(final String url, final ScraperBase.LoggerForScraper logger, ScraperBase.ScraperOutput output) throws IOException {
+    public void scrapeUrl(final String url, final ScraperBase.LoggerForScraper logger, ScraperOutput output, ScraperInformation scraperInformation) throws IOException {
         JsonObject apiResponse = Json.parse(getJsonFromApi(url, logger) ).asObject();
         Semaphore maxConnSemaphore = new Semaphore(MAX_CONNS_TO_SINGE_SERVER);
         int nProjects = apiResponse.get("projects").asArray().size();

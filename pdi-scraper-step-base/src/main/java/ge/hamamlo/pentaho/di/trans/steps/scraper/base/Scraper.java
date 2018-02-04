@@ -14,5 +14,5 @@ public interface Scraper {
     /**
      * Scrape whatever necessary from given url and feed results to {@code scraperOutput::yield}.
      */
-    void scrapeUrl(String url, ScraperBase.LoggerForScraper logger, ScraperBase.ScraperOutput scraperOutput) throws IOException;
+    void scrapeUrl(String url, ScraperBase.LoggerForScraper logger, ScraperOutput scraperOutput, ScraperInformation scraperInformation) throws IOException;
 }

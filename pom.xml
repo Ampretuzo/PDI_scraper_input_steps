@@ -63,6 +63,14 @@
         <artifactId>minimal-json</artifactId>
         <version>${minimal-json.version}</version>
       </dependency>
+
+      <dependency>
+        <groupId>org.mongodb</groupId>
+        <artifactId>mongo-java-driver</artifactId>
+        <version>3.6.2</version>
+      </dependency>
+
+
       <!--test deps-->
       <!-- https://mvnrepository.com/artifact/junit/junit -->
       <dependency>

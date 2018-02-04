@@ -1,8 +1,6 @@
 package ge.hamamlo.pentaho.di.trans.steps.scraper.mergerdeals.worker;
 
-import ge.hamamlo.pentaho.di.trans.steps.scraper.base.FieldDef;
-import ge.hamamlo.pentaho.di.trans.steps.scraper.base.Scraper;
-import ge.hamamlo.pentaho.di.trans.steps.scraper.base.ScraperBase;
+import ge.hamamlo.pentaho.di.trans.steps.scraper.base.*;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -82,7 +80,7 @@ public class MergerDealsScraper implements Scraper {
     }
 
     @Override
-    public void scrapeUrl(String url, ScraperBase.LoggerForScraper logger, ScraperBase.ScraperOutput scraperOutput) throws IOException {
+    public void scrapeUrl(String url, ScraperBase.LoggerForScraper logger, ScraperOutput scraperOutput, ScraperInformation scraperInformation) throws IOException {
         int pageNumber = 1;
         while (true) {
             System.out.println("doing page #: " + pageNumber);
@@ -110,6 +108,13 @@ public class MergerDealsScraper implements Scraper {
                 // first, take care of the fields that are right on the listings page
                 Element section = listingsResults.children().get(i);
                 String busyness_url = section.child(0).attr("href");
+
+                // here we decide scrape that url or not:
+                if (scraperInformation.alreadyProcessed(busyness_url) ) {
+                    waitForAllBusynessesToFinish.countDown();   // don't have to wait for it anymore
+                    continue;
+                }
+
                 String pro_name = section.getElementsByTag("h1").get(0).ownText();
                 // ori industry might not be present:
                 String oriIndustry = null;
@@ -145,6 +150,7 @@ public class MergerDealsScraper implements Scraper {
             }
 
             for (int i = 0; i < resultsOnPage.size(); i++) {
+                if (resultsOnPage.get(i) == null) continue;
                 if (!successful.get(i).get() ) continue;
                 scraperOutput.yield(resultsOnPage.get(i) );
             }

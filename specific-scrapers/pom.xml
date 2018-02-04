@@ -49,6 +49,17 @@
             <scope>provided</scope>
         </dependency>
 
+
+        <!--TODO: this is here only temporarily - because this pom will copy dependencies where needed.-->
+        <!--separate module for assembly is needed-->
+        <!-- https://mvnrepository.com/artifact/org.mongodb/mongo-java-driver -->
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongo-java-driver</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+
         <!--junit-->
         <dependency>
             <groupId>junit</groupId>
