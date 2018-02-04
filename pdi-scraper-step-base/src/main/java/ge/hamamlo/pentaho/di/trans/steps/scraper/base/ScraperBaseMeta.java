@@ -25,12 +25,11 @@ import static org.pentaho.di.core.row.ValueMetaInterface.*;
 public class ScraperBaseMeta extends BaseStepMeta implements StepMetaInterface {
     private String sourceUrl;
     private Class<? extends Scraper> scraperClass;
-    // TODO: hard coded at the moment
-    private boolean reProcessing = false;
-    private String mongoHost = "localhost";
-    private Integer mongoPort = 27017;
-    private String mongoDbName = "test";
-    private String mongoCollectionName = "test";
+    private boolean reProcessing;
+    private String mongoHost;
+    private Integer mongoPort;
+    private String mongoDbName;
+    private String mongoCollectionName;
 
     public ScraperBaseMeta() {
         super();
@@ -43,6 +42,10 @@ public class ScraperBaseMeta extends BaseStepMeta implements StepMetaInterface {
     public void setDefault() {
         sourceUrl = null;
         reProcessing = true;
+        mongoHost = null;
+        mongoPort = null;
+        mongoDbName = null;
+        mongoCollectionName = null;
     }
 
     @Override
@@ -51,6 +54,11 @@ public class ScraperBaseMeta extends BaseStepMeta implements StepMetaInterface {
         ScraperBaseMeta newScraperBaseMeta = (ScraperBaseMeta) super.clone();
         // Strings are immutable, it's safe to set same
         newScraperBaseMeta.setSourceUrl(this.sourceUrl);
+        newScraperBaseMeta.setMongoHost(this.mongoHost);
+        newScraperBaseMeta.setMongoPort(this.mongoPort);
+        newScraperBaseMeta.setMongoDbName(this.mongoDbName);
+        newScraperBaseMeta.setMongoCollectionName(this.mongoCollectionName);
+        newScraperBaseMeta.setReProcessing(this.reProcessing);
         return newScraperBaseMeta;
     }
 
@@ -58,6 +66,20 @@ public class ScraperBaseMeta extends BaseStepMeta implements StepMetaInterface {
     public String getXML() throws KettleException {
         StringBuilder retval = new StringBuilder(300);
         retval.append("    " + XMLHandler.addTagValue("sourceUrl", sourceUrl) );
+        if (mongoHost != null) {
+            retval.append("    " + XMLHandler.addTagValue("mongoHost", mongoHost) );
+        }
+        if (mongoPort != null) {
+            retval.append("    " + XMLHandler.addTagValue("mongoPort", mongoPort) );
+        }
+        if (mongoDbName != null) {
+            retval.append("    " + XMLHandler.addTagValue("mongoDb", mongoDbName) );
+        }
+        if (mongoCollectionName != null) {
+            retval.append("    " + XMLHandler.addTagValue("mongoCollection", mongoCollectionName) );
+        }
+        retval.append("    " + XMLHandler.addTagValue("reProcessing", reProcessing) );
+
         return retval.toString();
     }
 
@@ -65,6 +87,18 @@ public class ScraperBaseMeta extends BaseStepMeta implements StepMetaInterface {
     public void loadXML(Node stepnode, List<DatabaseMeta> databases, IMetaStore metaStore) throws KettleXMLException {
         super.loadXML(stepnode, databases, metaStore);
         this.sourceUrl = XMLHandler.getTagValue(stepnode, "sourceUrl");
+        this.mongoHost = XMLHandler.getTagValue(stepnode, "mongoHost");
+        String mongoPortString = XMLHandler.getTagValue(stepnode, "mongoPort");
+        if (mongoPortString != null && !mongoPortString.equals("") )
+            this.mongoPort = Integer.parseInt(mongoPortString);
+        this.mongoDbName = XMLHandler.getTagValue(stepnode, "mongoDb");
+        this.mongoCollectionName = XMLHandler.getTagValue(stepnode, "mongoCollection");
+        String reProcessingString = XMLHandler.getTagValue(stepnode, "reProcessing");
+        if (reProcessingString != null) {
+            this.reProcessing = reProcessingString.equalsIgnoreCase("y");
+        } else {
+            this.reProcessing = true;   // just in case reprocess everything
+        }
     }
 
     public Scraper instantiateScraper() throws ReflectiveOperationException {

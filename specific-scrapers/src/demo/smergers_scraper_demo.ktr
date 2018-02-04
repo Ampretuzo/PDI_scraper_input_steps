@@ -439,7 +439,7 @@
     <hop>
       <from>Smergers Busyness Scraper</from>
       <to>MongoDB Output</to>
-      <enabled>N</enabled>
+      <enabled>Y</enabled>
     </hop>
     <hop>
       <from>Smergers Busyness Scraper</from>
@@ -877,6 +877,10 @@
       <schema_name/>
     </partitioning>
     <sourceUrl>https&#x3a;&#x2f;&#x2f;www.smergers.com&#x2f;businesses&#x2f;businesses-for-sale&#x2f;s0&#x2f;c0&#x2f;t2&#x2f;&#x3f;deal_size_gte&#x3d;5000000&#x26;deal_size_lte&#x3d;1000000000</sourceUrl>
+    <mongoHost/>
+    <mongoDb/>
+    <mongoCollection/>
+    <reProcessing>Y</reProcessing>
     <cluster_schema/>
     <remotesteps>
       <input>

@@ -459,7 +459,11 @@
       <method>none</method>
       <schema_name/>
     </partitioning>
-    <sourceUrl>https://ec.europa.eu/eipp/desktop/en/data/projects.json</sourceUrl>
+    <sourceUrl>https&#x3a;&#x2f;&#x2f;ec.europa.eu&#x2f;eipp&#x2f;desktop&#x2f;en&#x2f;data&#x2f;projects.json</sourceUrl>
+    <mongoHost/>
+    <mongoDb/>
+    <mongoCollection/>
+    <reProcessing>Y</reProcessing>
     <cluster_schema/>
     <remotesteps>
       <input>
