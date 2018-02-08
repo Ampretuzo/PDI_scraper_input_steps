@@ -8,6 +8,8 @@ import org.jsoup.nodes.Element;
 import java.io.IOException;
 import java.text.NumberFormat;
 import java.text.ParseException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -78,8 +80,62 @@ public class MergerDealsScraperWorker implements Runnable {
             parseAdjEbidta(result, table);
         } else {
             // TODO: this is a special case which happens e.g. when two companies are for sale simultaneously.
-            // they will be presented by a text
-            result[getIndexForFieldName("turnover_ori_1", fields) ] = key.text();   // fall back to this
+            // we resort to basic text processing
+            String pureBody = key.toString().replaceAll("[<](/)?div[^>]*[>]", "").trim();
+            // there are a lot of different things that could happen:
+            if (!pureBody.contains("<br>") ) {
+                /*
+                 * <div id="key"><div style="background-color:#fff;padding:20px">The company has maintained consistent revenue growth from 2014 through 2016. In 2014, revenues were approximately $1.5 million and have grown to $3.2 million in 2017. The opening of new multiple locations throughout Texas and the United States is driving this growth.</div></div>
+                 * this is pure text nothing can be parsed
+                 */
+                result[getIndexForFieldName("turnover_ori_1", fields) ] = pureBody;
+            } else if (pureBody.toLowerCase().contains("average") ) {
+                /*
+                 * <br>
+                 *  <br>Average Revenues: $66,391
+                 *  <br>Average Gross Profit: $3,866
+                 *  <br>Average Adjusted EBITDA*: $2,315
+                 *  <br>
+                 *  <br>*Earnings before interest, tax, depreciation and amortization (non-cash items)
+                 */
+                List<String> strings = Arrays.asList(pureBody.split(" ") );
+                String averageRevenue = strings.get(strings.indexOf("Revenues:") + 1 ).replace(",", "").replace(".", "").trim() + "000";
+                String averageGrossProfit = strings.get(strings.indexOf("Profit:") + 1 ).replace(",", "").replace(".", "").trim() + "000";
+                String averageEbitda = strings.get(strings.indexOf("EBITDA*:") + 1).replace(",", "").replace(".", "").trim() + "000";
+                result[getIndexForFieldName("adj_ebidta_year_1", fields) ] = "Average";
+                result[getIndexForFieldName("turnover_year_1", fields) ] = "Average";
+                result[getIndexForFieldName("gross_profit_year_1", fields) ] = "Average";
+                result[getIndexForFieldName("adj_ebidta_type_1", fields) ] = "";    // there is no type information
+                result[getIndexForFieldName("turnover_type_1", fields) ] = "";  // there is no type information
+                result[getIndexForFieldName("gross_profit_type_1", fields) ] = "";   // there is no type information
+                result[getIndexForFieldName("adj_ebidta_ori_1", fields) ] = averageEbitda;
+                result[getIndexForFieldName("turnover_ori_1", fields) ] = averageRevenue;
+                result[getIndexForFieldName("gross_profit_ori_1", fields) ] = averageGrossProfit;
+
+//            } else if (pureBody.toLowerCase().contains("company") ) {
+                /*
+                 * Company 1 (Pipeline Construction):
+                 * <br>$'000 10/31/17 2016 2015 2014
+                 * <br> YTD Tax Rtns Tax Rtns Tax Rtns
+                 * <br>Revenue 2,360 2,740 3,809 4,674
+                 * <br>
+                 * <br>Company 2 (Industrial Supply):
+                 * <br>$'000 10/31/17 2016 2015 2014
+                 * <br> YTD Tax Rtns Tax Rtns Tax Rtns
+                 * <br>Revenue 8,318 9,301 19,892 22,074
+                 */
+//            } else if (pureBody.toLowerCase().contains("revenue") && pureBody.toLowerCase().contains("profit") && pureBody.toLowerCase().contains("ebidta") ) {
+                /*
+                 * YE Dec 31st 6/30/2017 2016 2015 2014 2013
+                 * <br>$'000 Review Review Review Review Review
+                 * <br>Gross Revenue 6,875 8,934 7,615 10,937 10,177
+                 * <br>Gross Profit 1,982 2,701 1,983 4,210 3 ,848
+                 * <br>Adj. EBITDA 684 371 -260 785 463
+                 */
+            } else {
+                // fall back to this so that information is not lost
+                result[getIndexForFieldName("turnover_ori_1", fields) ] = pureBody;
+            }
         }
     }
 
