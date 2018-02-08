@@ -129,11 +129,12 @@ public class MergerDealsScraperWorker implements Runnable {
 
     private Integer getValue(Element table, int i, int j) {
         String stringValue = getValueString(table, i, j);
+        if (stringValue == null || stringValue.equals("") ) return null;
         try {
-            NumberFormat integerInstance = NumberFormat.getIntegerInstance(Locale.FRANCE);
-            integerInstance.setParseIntegerOnly(true);
-            return integerInstance.parse(stringValue).intValue();
-        } catch (ParseException e) {
+            return Integer.parseInt(
+                    stringValue.replace(",", "").replace(".", "")
+            );
+        } catch (NumberFormatException nfe) {
             return null;
         }
     }
