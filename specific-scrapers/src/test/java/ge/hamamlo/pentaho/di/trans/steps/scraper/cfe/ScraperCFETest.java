@@ -1,6 +1,7 @@
 package ge.hamamlo.pentaho.di.trans.steps.scraper.cfe;
 
 import ge.hamamlo.pentaho.di.trans.steps.scraper.base.Scraper;
+import ge.hamamlo.pentaho.di.trans.steps.scraper.base.ScraperBase;
 import ge.hamamlo.pentaho.di.trans.steps.scraper.base.ScraperInformationDisabled;
 import org.junit.Test;
 

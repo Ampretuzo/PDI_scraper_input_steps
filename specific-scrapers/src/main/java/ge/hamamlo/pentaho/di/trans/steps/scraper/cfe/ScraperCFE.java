@@ -52,9 +52,9 @@ public class ScraperCFE implements Scraper {
 
     @Override
     public void scrapeUrl(String url, ScraperBase.LoggerForScraper logger, ScraperOutput scraperOutput, ScraperInformation information) throws IOException {
-        // logger.logBasic("Start scraping CFE " + url);
+         logger.logBasic("Start scraping CFE " + url);
         List<Object[]> allData = scrapeWebsite(logger, scraperOutput);
-        // logger.logBasic("Scraped " + allData.size() + " items");
+         logger.logBasic("Scraped " + allData.size() + " items");
         /*for (Object[] projectData : allData) {
             if (projectData == null) continue;
             scraperOutput.yield(projectData);

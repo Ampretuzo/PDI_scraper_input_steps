@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -22,24 +23,21 @@ public class ScraperGlobalbxWorker {
     private String[] fields;
     private String referrer;
 
-    public ScraperGlobalbxWorker(List<String> urlList, ScraperBase.LoggerForScraper logger, Map<String, String> cookies, String[] fields, String referrer) {
-        this.referrer = referrer;
-        this.urlList = urlList;
-        this.logger = logger;
-        this.cookies = cookies;
-        this.fields = fields;
-    }
+    private class ScraperGlobalbxWorkersWorker implements Callable<Object[] > {
+        private final String url;
 
+        ScraperGlobalbxWorkersWorker(String url) {
+            this.url = url;
+        }
 
-    public List<Object[]> scrapeBusiness() {
-        List<Object[]> resultList = new ArrayList<>();
-        for (int i = 0; i < urlList.size(); i++) {
-            System.out.println(Thread.currentThread().getName() + " Fatching page: " + urlList.get(i));
+        @Override
+        public Object[] call() throws Exception {
+            System.out.println(Thread.currentThread().getName() + " Fatching page: " + url);
             Object[] result = new Object[fields.length];
             try {
                 //set url
-                result[getIndexForFieldName("page_url", fields)] = urlList.get(i);
-                Document document = Jsoup.connect(urlList.get(i))
+                result[getIndexForFieldName("page_url", fields)] = url;
+                Document document = Jsoup.connect(url)
                         .cookies(cookies)
                         .timeout(40000)
                         .referrer(referrer)
@@ -122,17 +120,47 @@ public class ScraperGlobalbxWorker {
                     result[getIndexForFieldName("motivation_for_trade", fields)] = getData("Reason For Selling", mainFormElm, false);
 
                 }
-                resultList.add(result);
             } catch (IOException e) {
-                String message = Thread.currentThread().getName() + " Fetching page from " + urlList.get(i) + " error! " + e.toString();
+                String message = Thread.currentThread().getName() + " Fetching page from " + url + " error! " + e.toString();
                 if (logger == null) {
                     System.out.println(message);
                 } else {
                     logger.logBasic(message);
                 }
+                return null;    // to differentiate from valid result
             }
+            return result;
         }
-        return resultList;
+    }
+
+    public ScraperGlobalbxWorker(List<String> urlList, ScraperBase.LoggerForScraper logger, Map<String, String> cookies, String[] fields, String referrer) {
+        this.referrer = referrer;
+        this.urlList = urlList;
+        this.logger = logger;
+        this.cookies = cookies;
+        this.fields = fields;
+    }
+
+
+    public List<Object[]> scrapeBusiness() {
+        ExecutorService executorService = Executors.newFixedThreadPool(3);  // don't choose more because server refuses to answer concurrent requests
+        List<ScraperGlobalbxWorkersWorker> workersWorkers = new ArrayList<>();
+        for (int i = 0; i < urlList.size(); i++) {
+            workersWorkers.add(new ScraperGlobalbxWorkersWorker(urlList.get(i) ) );
+        }
+        try {
+            List<Future<Object[]>> futures = executorService.invokeAll(workersWorkers);
+            List<Object[]> resultList = new ArrayList<>();
+            for (Future<Object[] > futureResult : futures) {
+                Object[] result = futureResult.get();
+                if (result != null) resultList.add(result);
+            }
+            executorService.shutdown();
+            return resultList;
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     private String getData(String textInElm, Element mainFormElm, boolean getAll) {
