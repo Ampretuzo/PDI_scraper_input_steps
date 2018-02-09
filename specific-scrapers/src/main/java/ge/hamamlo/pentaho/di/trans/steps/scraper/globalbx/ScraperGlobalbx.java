@@ -128,6 +128,8 @@ public class ScraperGlobalbx implements Scraper {
             } else {
                 System.out.println("ERROR " + e.toString());
             }
+        } finally {
+            scraperOutput.yield(null);
         }
 
     }
