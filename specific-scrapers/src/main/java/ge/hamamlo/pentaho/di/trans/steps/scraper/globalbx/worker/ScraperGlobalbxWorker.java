@@ -172,6 +172,12 @@ public class ScraperGlobalbxWorker {
             } else {
                 text = elm.ownText().trim();
             }
+            if (text.equals("") && (textInElm.equals("Gross Revenues") || textInElm.equals("Cash Flow"))) {
+                Element valueElm = elm.nextElementSibling();
+                if (valueElm != null && valueElm.select("b").first() == null) {
+                    text = valueElm.text().trim();
+                }
+            }
         }
         return text;
     }

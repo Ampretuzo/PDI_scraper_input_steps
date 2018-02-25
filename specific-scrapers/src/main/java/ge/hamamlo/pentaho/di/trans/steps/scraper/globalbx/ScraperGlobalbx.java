@@ -83,13 +83,11 @@ public class ScraperGlobalbx implements Scraper {
         Elements locationElements = document.select("select#BizLocation option");
 
 
-        ExecutorService executorService = Executors.newFixedThreadPool(1);
-        CompletionService<List<Object[]>> service = new ExecutorCompletionService<>(executorService);
-
+        // why were you using threads with pool size 1? Not good...
+        List<CatalogFetcher> catalogFetchers = new ArrayList<>();
 
         for (Element locationElm : locationElements) {
             StringBuilder dataSb = new StringBuilder(COMMON_DATA_POST_STRING);
-            StringBuilder dataTechSb = new StringBuilder(COMMON_DATA_POST_STRING);
             int locationId = Integer.parseInt(locationElm.attr("value"));
             if ((locationId > 0 && locationId < 52) || (locationId > 52 && locationId < 66)) {
                 continue;
@@ -101,37 +99,27 @@ public class ScraperGlobalbx implements Scraper {
                     .append("&txtloclist=").append(locationId)
                     .append("&txtCountry=").append(URLEncoder.encode(locationName, "UTF-8"));
 
-            dataTechSb.append(dataSb);
             dataSb.append(HEALTH_AND_INDUSTRY_DATA_POST_STRING);
-            dataTechSb.append(TECHNOLOGY_DATA_POST_STRING);
 
             CatalogFetcher catalogFetcher = new CatalogFetcher(SEARCH_URL, dataSb.toString(), cookies, logger);
-            // CatalogFetcher catalogTechFetcher = new CatalogFetcher(SEARCH_URL, dataTechSb.toString(), cookies);
-
-            service.submit(catalogFetcher);
-            // service.submit(catalogTechFetcher);
+            catalogFetchers.add(catalogFetcher);
         }
-        executorService.shutdown();
-        try {
-            while (!executorService.isTerminated()) {
-                Future<List<Object[]>> future = service.take();
-                for (Object[] objects : future.get()) {
-                    if (objects == null) {
-                        continue;
-                    }
-                    scraperOutput.yield(objects);
+        for (CatalogFetcher catalogFetcher : catalogFetchers) {
+            try {
+                List<Object[]> results = catalogFetcher.call();
+                for (Object[] result : results) {
+                    if (result != null) scraperOutput.yield(result);
+                }
+            } catch (Exception e) {
+                // just pass this:
+                if (logger != null) {
+                    logger.logBasic("Failed to process one catalog fetcher...");
+                } else {
+                    System.out.println("Failed to process one catalog fetcher...");
                 }
             }
-        } catch (Exception e) {
-            if (logger != null) {
-                logger.logBasic("ERROR " + e.toString());
-            } else {
-                System.out.println("ERROR " + e.toString());
-            }
-        } finally {
-            scraperOutput.yield(null);
         }
-
+        scraperOutput.yield(null);
     }
 
     public static int getIndexForFieldName(String fieldName, String[] fields) {
